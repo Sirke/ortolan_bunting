@@ -1,0 +1,247 @@
+---
+title: "data management"
+author: "me"
+date: "9 joulukuuta 2019"
+output: html_document
+---
+
+# Peltosirkkuaineiston muokkaus 
+
+## Uusien muuttujien laskeminen
+
+Lasketaan uusia muuttujia, jotka tiivistävät aineistoa. Osa muuttujista on "vaihtoehtoisia", niiden sisältämä tieto saattaa kuulua kahteen eri muuttujaan. 
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+paketit<-c("readr","tidyr","plyr","dplyr","vegan","ggplot2")
+lapply(paketit,library,character.only=T)
+```
+
+### Aineisto sisälle ja tarkastelu
+
+```{r}
+getwd()
+localDir = "."
+DataDir = file.path(localDir, "data")
+filename1 = file.path(DataDir, "osapop_20002018.csv")
+filename2= file.path(DataDir,"keskipisteiden_koordinaatit.csv")
+data=read.csv(filename1, sep=";")
+koord=read.csv(filename2, sep=";") 
+
+names(data)
+```
+
+Muuttujien selitykset:
+
+id = kunkin osapopulaation yksilöivä id-numero (vuosien 2000-2017 välillä tehdyt havaintoryppäät, jotka tulkitaan lauluryhmäksi)  
+
+agri5  =    osapopulaation keskipisteen ympärille piirretyn 5 km säteen omaavan ympyrän sisälle jäävän maaseutu-maanpeitteen osuus (aineisto: Corine)
+
+
+area    =    kunkin osapopulaation pinta-ala (osapopulaatioksi tulkittujen havaintojen ympärille piirretty 300 metrin bufferi)  
+
+
+build  =     rakennusten lukumäärä osapopulaation alueella  
+
+
+river  =     jokien pituus metreinä
+
+
+roads   =    teiden pituus metreinä 
+
+
+stream   =   purojen pituus metreinä   
+
+
+ndvi   =     Guinean edellistalven kasvillisuus-indeksi  
+
+
+prec   =     edellisen kesän (21.5-15.7) päivittäisten keskisadantojen keskiarvo osapopulaation alueella  
+
+
+temp   =     edelliskesän lämpötilat 
+
+
+terri    =   reviirien lukumäärä osapopulaation alueella vuosittain  
+
+
+spnum    =   viljelykasvien lukumäärä (ilman luokkaa 99999, eli ei tietoa) 
+
+
+X...   =     viljelykasviluokkien osuudet, Huom! muuttuja X99999 on "ei tietoa viljelykasvista"
+
+
+
+Eri viljelykasveja on mukana yli toistasataa! Suurin osa tietysti nollaa.
+
+
+```{r}
+head(koord)
+```
+
+
+### Shannon-Wienerin indeksi
+
+Shannon-Wienerin indeksin laskeminen viljylykasvidiversiteetille. Mukaan laskuihin on (kai) otettava muuttuja '99999' eli 'ei tietoa kasvilajista' koska 
+muuten osuudet eivät summaudu yhteen.
+
+```{r}
+#lisataan shannon-wiener muuttuja
+data<-mutate(data, shan = diversity(data[,15:248],index="shannon"))
+```
+
+### Viljelykasvilajien lukumäärä
+
+Kasvilajien lukumäärä ('99999' mukana). Huomioi, että todellisuudessa tämä muuttuja voi kuvastaa vain EU-tukiryhmien moninaisuutta, lajithan voivat olla samaa nurmea koko ajan mutta eri kategorioissa.
+
+```{r}
+#kasvilajien lukumaara
+data<-mutate(data, snum= rowSums(data[,15:248]>0))
+```
+
+### Viljelykasvilajien ryhmittely
+
+Alustava jaottelu kymmeneen ryhmään:
+
+```{r}
+#listataan ensi mita muuttujia menee mihinkin ryhmaan
+
+eitietoa<-c("X99999")
+
+avomaavih<-c("X5148","X3210","X50","X55","X3110","X3120","X3130","X3140","X3150","X3160","X3180","X3190","X3310","X5100","X5103","X5104","X5105","X5106","X5107","X5108","X5109","X5111","X5112","X5113","X5115","X5116","X5117","X5119","X5120","X5121","X5124","X5125","X5128","X5129","X5134","X5140","X5143","X5146","X5149","X5150","X5157","X5165","X5173","X5197","X5198","X5816","X9630")
+
+erikois<-c("X4900","X4901","X4902","X4903","X4904","X9640","X9642") #lähinnä ruokohelpi (4900)
+
+marjat<-c("X5210","X5213","X5220","X5221","X5301","X5302","X5303","X5304","X5307","X5310","X5311","X5318","X5319","X5400","X5410","X5420","X5441","X5451","X5500","X5510","X5512","X5530","X5534","X7210")
+
+viljat<-c("X5853","X5831","X1211","X2190","X2195","X1140","X10","X1120","X1142","X1210","X1220","X1310","X1320","X1330","X1400","X1510","X1540","X1545","X1600","X1601","X1602","X1603","X1605","X1700","X1750","X1800","X1810","X1900")
+
+mausteet<-c("X4800","X4810","X5152","X5806","X5824","X5842","X5843","X5846","X5850","X5851")
+
+nurmet<-c("X6051","X2420","X2196","X2197","X9050","X9060","X9061","X9421","X94","X95","X90","X63","X60","X6050","X6060","X6111","X6112","X6113","X6114","X6121","X6122","X6123","X6124","X6125","X6210","X6220","X6221","X6230","X6300","X6301","X6302","X6400","X6402","X6542","X6545","X6550","X6561","X6562","X6563","X6565","X6600","X6700","X6710","X6720","X7110","X9100","X9101","X9102","X9110","X9111","X9400","X9401","X9402","X9403","X9404","X9405","X9406","X9407","X9408","X9412","X9413","X9422","X9423","X9424","X9430","X9440","X9460","X9600","X9620","X9700","X9710","X9720","X9801","X9810","X9811","X9812","X9800","X9820","X9802","X9803",	"X9804","X9805",	"X9806","X9807","X9808")
+
+syysviljat<-c("X1110","X1141","X1230","X4120","X4220")
+
+valkuais<-c("X2110","X2120","X2130","X2140","X2150","X2160","X2180","X2185","X2200","X2400","X2410","X2430","X2500","X2600","X5101","X5102")
+
+oljy<-c("X4390","X4030","X4110","X4210","X4300","X4520","X4530","X4610","X4620","X8021")
+
+```
+
+Neonikotinoideihin yhdistettävät kasvilajit voidaan lajitella vielä lisäksi omaksi ryhmäkseen. Huomioi, että tämän ryhmän lajit löytyvät jo muista ryhmistä.
+
+```{r}
+#jos halutaan potentiaaliset neonikotinoidikasvit erikseen
+neot<-c("X4110","X4120","X4210","X4220","X3210")
+```
+
+Lasketaan viljelyosuudet uusille ryhmille:
+
+```{r}
+#valitaan ketjun perusteella sarakkeet ja lasketaan niistä summa uuden sarakkeen alle
+data %>% select(avomaavih) %>% rowSums(na.rm=TRUE) -> data$vege
+data %>% select(eitietoa) %>% rowSums(na.rm=TRUE) -> data$unkno
+data %>% select(erikois) %>% rowSums(na.rm=TRUE) -> data$spec
+data %>% select(marjat) %>% rowSums(na.rm=TRUE) -> data$fruit
+data %>% select(viljat) %>% rowSums(na.rm=TRUE) -> data$cere
+data %>% select(mausteet) %>% rowSums(na.rm=TRUE) -> data$herb
+data %>% select(nurmet) %>% rowSums(na.rm=TRUE) -> data$gras
+data %>% select(syysviljat) %>% rowSums(na.rm=TRUE) -> data$wint
+data %>% select(valkuais) %>% rowSums(na.rm=TRUE) -> data$prot
+data %>% select(oljy) %>% rowSums(na.rm=TRUE) -> data$oil
+#neo erikseen
+data %>% select(neot) %>% rowSums(na.rm=TRUE) -> data$neo
+```
+
+Tarkastellaan yksittäisten viljelykasvilajien osuuksia aineistossa:
+
+```{r}
+#viljelykasvien keskimääräiset osuudet kaikilta vuosilta
+osuudet<-colMeans(data[,15:248])
+sp<-names(data[,15:248])
+sp<- as.data.frame((cbind(sp,osuudet)),row.names = F)
+sp$osuudet<-as.numeric(as.character(sp$osuudet))
+
+#viljelykasvien pinta-alojen jakauma
+ggplot(sp, aes(x=osuudet))+geom_histogram()
+```
+
+Vain muutama laji dominoi viljelyosuuksissa.
+
+```{r}
+#yleisimmät viljelykasvit
+sp %>%
+  top_n(10, osuudet)
+```
+
+Yleisimmät lajit ovat kevätvehnä (1120), kaura (1400), rehuohra (1310), monivuotiset kuivaheinä-, säilörehu- ja tuorerehunurmet (6121), mallasohra (1320), kevätrypsi (4110) ja syysvehnä (1110).
+
+```{r}
+#kasviryhmien keskimääräiset osuudet kaikilta vuosilta
+colMeans(data[,251:260])
+```
+
+Viljat ja nurmet dominoivat. Öljykasvit ja syysviljat tulevat perässä.
+
+
+#### Viljelykasviryhmien tiivistäminen 
+
+Jos halutaan vielä tiivistää viljelykasviryhmiä, voidaan lajitella kasvit kahteen ryhmään. Toinen ryhmä (open) käsittää kasvit, jotka ovat keväällä peltosirkkujen pesimäaikaan vasta kylvövaiheessa (tai lyhyellä oraalla?). Toinen ryhmä (cover) käsittää kasvit, jotka ovat keväällä jo pidemmällä kasvussa ja niiden peittävyys on suurempi.
+
+```{r}
+#jos halutaan vielä tiivistää viljelykasveja
+data<-mutate(data, open = cere+vege+oil+prot) #pitäisikö vielä lisätä herb, fruit ja spec (ruokohelpi)? entäpä 9999?
+data<-mutate(data, cover = gras+wint)
+```
+
+
+
+### Pienimuotoisten rakenteiden tiheys
+
+Lasketaan rakennusten, teiden, purojen ja jokien tiheys suhteessa osapopulaation pinta-alaan (nyt jokainen erikseen, pitäisikö yhdistää yhdeksi muuttujaksi?)
+
+```{r}
+data<-mutate(data, Abuild = build/area)
+data<-mutate(data, Ariver = river/area)
+data<-mutate(data, Astream = stream/area)
+data<-mutate(data, Aroad = roads/area)
+```
+
+#### Rakenteiden tiivistäminen 
+
+Jos halutaan vielä tiivistää myös kaikki rakenteet yhteen muuttujaan ('SSS', small-scale structures)
+
+```{r}
+data<-mutate(data, SSS = Abuild+Aroad+Ariver+Astream)
+```
+
+
+## Aineiston siistiminen
+
+Karsitaan yksittäiset viljelykasvisarakkeet aineistosta pois, lisätään osapopulaatioiden koordinaatit ja poistetaan aineistosta kaikki ne vuodet, jolloin osapopulaatiota ei käyty tarkistamassa.
+
+```{r}
+data<-data[,c(1:4,7:8,12:13,249:268)]
+
+#koordinaatit
+koord=select(koord,id,X,Y)
+data<-left_join(data,koord,by="id")
+
+names(data)
+```
+
+Mukana on siis vielä 30 (osin vaihtoehtoista) muuttujaa.
+
+```{r}
+#tarkasta kaikkien luokkien muoto
+data$id<-as.factor(data$id)
+
+#poista aineistosta paikat, joilla ei ole kayty
+data=data %>% drop_na("terri")
+```
+
+```{r}
+#tallennetaan
+write.csv(data,"OrtolanBunting.csv",row.names = F)
+```

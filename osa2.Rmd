@@ -1,0 +1,123 @@
+---
+title: "Ortolan Bunting analysis"
+author: "me"
+date: "9 joulukuuta 2019"
+output: html_document
+---
+
+# Peltosirkkuaineiston analyysi
+
+Tutkimuskysymykset:  
+
+1) Peltosirkun häviämisnopeus kasvaa alueen avoimuuden vähentyessä ja eristyneisyyden kasvaessa  
+
+2) Peltosirkun häviämisnopeus kasvaa peltoviljelyn muuttuessa viljavaltaisesta nurmivaltaiseksi  
+
+3) Peltosirkun häviämisnopeus kasvaa viljelyn monimuotoisuuden vähentyessä  
+
+4) Peltosirkun häviämisnopeus kasvaa maiseman pienipiirteisten rakenteiden yksipuolistuessa  
+
+
+
+```{r, include=FALSE}
+getwd()
+paketit<-c("readr","tidyr","plyr","dplyr","vegan","ggplot2","lattice","psych","glmmTMB","tidyverse")
+lapply(paketit,library,character.only=T)
+```
+
+
+## Aineiston tarkastelua
+
+```{r}
+data<-read.csv("OrtolanBunting.csv")
+
+#tarkasta kaikkien luokkien muoto
+data$id<-as.factor(data$id)
+
+#pitäisikö vuosi olla factor vai integer?
+data$fyear<-as.factor(data$year)
+
+names(data)
+summary(data)
+str(data)
+```
+
+
+
+```{r}
+#outliers
+dotchart(data$terri, main= "territories")
+dotchart(data$prec, main= "precipitation")
+dotchart(data$temp, main= "temperature")
+dotchart(data$open, main= "spring sown")
+dotchart(data$SSS, main= "small-scale structures")
+
+hist(data$terri)
+```
+
+Aineistossa on muutama MEGAosapopulaatio. Suurimmaksi osaksi pienempiä.
+
+```{r, fig.width=14, fig.height=12}
+#relationships
+pairs.panels(data[,c(4:7,8:9,21:23,28:30)])
+```
+
+Reviirien lukumäärällä (terri) ja Shannon-Wienerin indeksillä (shan) on suht vahva korrelaatio. Keväällä kylvettävien kasvien osuus (open) ja keväällä pitkällä oraalla olevien kasvien (cover) osuudet ovat toistensa vastakohdat. Myös maatalousmaiseman osuus (agri5) ja pienrakenteiden tiheys (SSS) nousevat esille.
+
+```{r}
+#plottailua
+xyplot(terri~year|id, data=data)
+boxplot(terri~year, data=data)
+boxplot(data$terri~data$id, data=data)
+xyplot(terri~SSS, data=data)
+xyplot(terri~open, data=data)
+```
+
+
+## Mallit
+
+M1 = year  
+
+M2 = year + kov  
+
+M3 = year + kov + weather x year  
+
+M4 = year + kov + pelto x year  
+
+M5 = year + kov + weather x year + pelto x year  
+
+
+Kov(ariaatit) tarkoittaa SSS, agri5 ja koordinaatteja.  
+Weather tarkoittaa sadantaa ja lämpötilaa.  
+Pelto tarkoittaa shannon-indeksiä ja avoimen maan osuutta (open).
+
+
+```{r}
+#esimerkit:
+#m1=glmmTMB(N ~Year + (1|fYear) + (1|Site), family=nbinom2, data=Embhor) 
+#m2=glmmTMB(N ~SSS + Landscape + X + Y + X*Y + Year + (1|fYear) + (1|Site), family=nbinom2, data=Embhor) 
+#m3=glmmTMB(N ~SSS + Landscape + X + Y + X*Y + Year*Temp + Year*Rain + Year*NDVI + (1|fYear) + (1|Site), family=nbinom2, data=Embhor)
+#m4=glmmTMB(N ~SSS + Landscape + X + Y + X*Y + Year*Cropdiv + Year*Plough + (1|fYear) + (1|Site), family=nbinom2, data=Embhor)
+#m5=glmmTMB(N ~SSS + Landscape + X + Y + X*Y + Year*Temp + Year*Rain + Year*NDVI + Year*Cropdiv + Year*Plough + (1|fYear) + (1|Site), family=nbinom2, data=Embhor)
+
+#varsinaiset mallit:
+M1=glmmTMB(terri ~ year + (1|fyear) + (1|id), family=nbinom2, data=data)
+summary(M1)
+
+M2=glmmTMB(terri ~ SSS + agri5 + X + Y + X*Y + year + (1|fyear) + (1|id), family=nbinom2, data=data)
+summary(M2)
+
+M3=glmmTMB(terri ~ SSS + agri5 + X + Y + X*Y + year*temp + year*prec + year*ndvi  + (1|fyear) + (1|id), family=nbinom2, data=data)
+summary(M3)
+
+M4=glmmTMB(terri ~ SSS + agri5 + X + Y + X*Y + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=data)
+summary(M4)
+
+M5=glmmTMB(terri ~ SSS + agri5 + X + Y + X*Y + year*temp + year*prec + year*ndvi + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=data)
+summary(M5)
+
+```
+
+Tähän jäin. Mallit eivät toimi..  
+
+Selvitä, pitääkö vuosi olla jatkuva vai luokkamuuttuja, ja miten glmmTMB syntaksi menee.

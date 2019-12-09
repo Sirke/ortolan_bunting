@@ -1,0 +1,32 @@
+
+---
+title: "Peltosirkku"
+author: "Sirke Piirainen"
+output:
+  html_document:
+    theme: readable
+    toc: true
+    toc_depth: 3
+    fig_caption: true
+    fig_width: 6
+    fig_height: 4
+    code_folding: "hide"
+    warning: "hide"
+    message: "hide"
+---
+
+***
+  
+```{r child = "osa1.Rmd"}
+```
+  
+***
+
+
+***
+  
+```{r child = "osa2.Rmd"}
+```
+  
+***
+
