@@ -245,3 +245,4 @@ data=data %>% drop_na("terri")
 #tallennetaan
 write.csv(data,"OrtolanBunting.csv",row.names = F)
 ```
+

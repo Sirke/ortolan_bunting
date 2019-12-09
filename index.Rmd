@@ -1,6 +1,6 @@
 
 ---
-title: "Peltosirkku"
+title: "Peltsi"
 author: "Sirke Piirainen"
 output:
   html_document:
