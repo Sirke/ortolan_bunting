@@ -152,3 +152,4 @@ M5=glmmTMB(terri ~ SSS + agri5 + X + Y + X*Y + year*temp + year*prec + year*ndvi
 summary(M5)
 ```
 
+Joku vielä mättäää. Koordinaatit ovat isoja arvoja..
