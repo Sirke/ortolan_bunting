@@ -21,7 +21,7 @@ Tutkimuskysymykset:
 
 ```{r, include=FALSE}
 getwd()
-paketit<-c("readr","tidyr","plyr","dplyr","vegan","ggplot2","lattice","psych","glmmTMB")
+paketit<-c("readr","tidyr","plyr","dplyr","vegan","ggplot2","lattice","psych","glmmTMB","lme4")
 lapply(paketit,library,character.only=T)
 ```
 
@@ -105,50 +105,72 @@ Pelto tarkoittaa shannon-indeksiä ja avoimen maan osuutta (open).
 M1=glmmTMB(terri ~ year + (1|fyear) + (1|id), family=nbinom2, data=data)
 summary(M1)
 
-M2=glmmTMB(terri ~ SSS + agri5 + X + Y + X*Y + year + (1|fyear) + (1|id), family=nbinom2, data=data)
-summary(M2)
+#M2=glmmTMB(terri ~ SSS + agri5 + X + Y + X*Y + year + (1|fyear) + (1|id), family=nbinom2, data=data)
+#summary(M2)
 
-M3=glmmTMB(terri ~ SSS + agri5 + X + Y + X*Y + year*temp + year*prec + year*ndvi  + (1|fyear) + (1|id), family=nbinom2, data=data)
-summary(M3)
+#M3=glmmTMB(terri ~ SSS + agri5 + X + Y + X*Y + year*temp + year*prec + year*ndvi  + (1|fyear) + (1|id), family=nbinom2, data=data)
+#summary(M3)
 
-M4=glmmTMB(terri ~ SSS + agri5 + X + Y + X*Y + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=data)
-summary(M4)
+#M4=glmmTMB(terri ~ SSS + agri5 + X + Y + X*Y + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=data)
+#summary(M4)
 
-M5=glmmTMB(terri ~ SSS + agri5 + X + Y + X*Y + year*temp + year*prec + year*ndvi + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=data)
-summary(M5)
+#M5=glmmTMB(terri ~ SSS + agri5 + X + Y + X*Y + year*temp + year*prec + year*ndvi + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=data)
+#summary(M5)
 ```
 
-Mikään malleista ei näytä toimivan. Mietin, voiko year olla mukana sekä fixed- että random-muuttujana. Kokeilen poistaa muuttujan year random-efekteistä.  
+Mikään malleista ei näytä toimivan. 
 
 Muuttuja 'id' eli jokaisen osapopulaaation yksilöivä tunniste on random-muuttuja koska se saattaa sisältää jotain informaatiota, jota fixed-muuttujat eivät sisällä koska koko populaatio ei ole täydellisesti edustettuna otoksessa.  
 
 Määritelmiä siitä, milloin effect on fixed tai random:  
 
-Effects are fixed if they are interesting in themselves or random if there is interest in the underlying population.  
+-Effects are fixed if they are interesting in themselves or random if there is interest in the underlying population.  
 
-When a sample exhausts the population, the corresponding variable is fixed; when the sample is a small (i.e., negligible) part of the population the corresponding variable is random.  
+-When a sample exhausts the population, the corresponding variable is fixed; when the sample is a small (i.e., negligible) part of the population the corresponding variable is random.  
 
 Mutta entäpä vuosi?  
+
 Random-efektinä se huomioisi vuosien välisen ajallisen riippuvuuden. Osapopulaatiolla, jolla on monta lauluryhmää yhtenä vuonna, on suuremmalla todennäköisyydellä monta lauluryhmää myös seuraavana vuonna.  
 Fixed-efektinä se selittäisi lauluryhmien määrässä tapahtuvaa vaihtelua suoraan. Vuodet ovat erilaisia (esim. tapahtumat Afrikassa vaihtelevat) ja jokin asia, jota emme ole tajunneet mitata voi selittyäkin vuodella.  
 
 
+Muuttuja sekä fixed että random-tekijänä?  
+
+Lue aiheesta [täältä](https://www.theanalysisfactor.com/mixed-models-predictor-both-fixed-random/). Voiko vuosi siis olla fixed effect vain silloin kun se on interaktiossa jonkun toisen muuttujan kanssa? 
+
+
+Nested or crossed?
+
+Relatively few mixed effect modeling packages can handle crossed random effects, i.e. those where one level of a random effect can appear in conjunction with more than one level of another effect. (This definition is confusing, and I would happily accept a better one.) A classic example is crossed temporal and spatial effects. If there is random variation among temporal blocks (e.g. years) ‘’and’‘random variation among spatial blocks (e.g. sites),’‘and’‘if there is a consistent year effect across sites and’‘vice versa’’, then the random effects should be treated as crossed.  
+
+
+Random-muuttujan havaintojen määrä?  
+
+Joillain osapopulaatioilla on käyty vain kerran, joillain taas täydet 19 kertaa. Jos osapopulaatio on random-tekijä täytyy siitä olla havaintoja useampia. Muuten ei pysty arvioimaan ryhmän sisäistä vaihtelua? Katso kysymys [aiheesta](https://stats.stackexchange.com/questions/242821/how-will-random-effects-with-only-1-observation-affect-a-generalized-linear-mixe). Vastaus on kai, että ei haittaa, kunhan vaihtelun saa arvioitua muista osapopulaatioista, joista on useampia havaintoja. 
+
+Muuttujien skaalaaminen?
 
 ```{r}
+#Pitäisikö aineisto skaalata?
+data=data %>%
+   mutate_at(c(4,5,6,7,9:30), funs(c(scale(.))))
+
 #varsinaiset mallit:
-M1=glmmTMB(terri ~ year  + (1|id), family=nbinom2, data=data)
+M1=glmer(terri ~ year + (1|fyear)+ (1|id), family=nbinom2, data=data)
 summary(M1)
 
-M2=glmmTMB(terri ~ SSS + agri5  +  year + X*Y  + (1|id), family=nbinom2, data=data)
+table(data$id)
+
+M2=glmmTMB(terri ~ SSS + agri5   + X*Y + (1|year) + (1|id), family=nbinom2, data=data)
 summary(M2)
 
-M3=glmmTMB(terri ~ SSS + agri5 + X + Y + X*Y + year*temp + year*prec + year*ndvi   + (1|id), family=nbinom2, data=data)
+M3=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec  + (1|year)  + (1|id), family=nbinom2, data=data)
 summary(M3)
 
-M4=glmmTMB(terri ~ SSS + agri5 + X + Y + X*Y + year*shan + year*open  + (1|id), family=nbinom2, data=data)
+M4=glmmTMB(terri ~ SSS + agri5 +  X*Y + year*shan + year*open  + (1|id), family=nbinom2, data=data)
 summary(M4)
 
-M5=glmmTMB(terri ~ SSS + agri5 + X + Y + X*Y + year*temp + year*prec + year*ndvi + year*shan + year*open  + (1|id), family=nbinom2, data=data)
+M5=glmmTMB(terri ~ SSS + agri5 +  X*Y + year*temp + year*prec + year*ndvi + year*shan + year*open  + (1|id), family=nbinom2, data=data)
 summary(M5)
 ```
 
