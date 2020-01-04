@@ -23,6 +23,7 @@ Tutkimuskysymykset:
 getwd()
 paketit<-c("readr","tidyr","plyr","dplyr","vegan","ggplot2","lattice","psych","glmmTMB","lme4")
 lapply(paketit,library,character.only=T)
+source("HighstatLibV12.R")
 ```
 
 
@@ -42,7 +43,7 @@ summary(data)
 str(data)
 ```
 
-
+###Poikkeavia havaintoja
 
 ```{r}
 #outliers
@@ -53,9 +54,17 @@ dotchart(data$open, main= "spring sown")
 dotchart(data$SSS, main= "small-scale structures")
 
 hist(data$terri)
+
+#kuinka monta käyntikertaa per osapopulaatio?
+table(data$id)
 ```
 
-Aineistossa on muutama MEGAosapopulaatio. Suurimmaksi osaksi pienempiä.
+Aineistossa on muutama MEGAosapopulaatio. Suurimmaksi osaksi pienempiä.  
+
+Muutamalla osapopulaatiolla on käyty vain kerran.
+
+
+### Riippuvuussuhteita
 
 ```{r, fig.width=14, fig.height=12}
 #relationships
@@ -63,6 +72,9 @@ pairs.panels(data[,c(4:7,8:9,21:23,28:30)])
 ```
 
 Reviirien lukumäärällä (terri) ja Shannon-Wienerin indeksillä (shan) on suht vahva korrelaatio. Keväällä kylvettävien kasvien osuus (open) ja keväällä pitkällä oraalla olevien kasvien (cover) osuudet ovat toistensa vastakohdat. Myös maatalousmaiseman osuus (agri5) ja pienrakenteiden tiheys (SSS) nousevat esille.
+
+
+### Lisää plottailua
 
 ```{r, fig.width=14, fig.height=12}
 #plottailua
@@ -76,6 +88,8 @@ xyplot(terri~cover, data=data)
 
 
 ## Mallit
+
+Peruspiirteittäin suunniteltiin mallit näin:
 
 M1 = year  
 
@@ -92,6 +106,7 @@ Kov(ariaatit) tarkoittaa SSS, agri5 ja koordinaatteja.
 Weather tarkoittaa sadantaa ja lämpötilaa.  
 Pelto tarkoittaa shannon-indeksiä ja avoimen maan osuutta (open).
 
+### Suunnitelman mukaiset ensimmäiset yritykset
 
 ```{r}
 #esimerkit:
@@ -105,16 +120,16 @@ Pelto tarkoittaa shannon-indeksiä ja avoimen maan osuutta (open).
 M1=glmmTMB(terri ~ year + (1|fyear) + (1|id), family=nbinom2, data=data)
 summary(M1)
 
-#M2=glmmTMB(terri ~ SSS + agri5 + X + Y + X*Y + year + (1|fyear) + (1|id), family=nbinom2, data=data)
+#M2=glmmTMB(terri ~ SSS + agri5 +  X*Y + year + (1|fyear) + (1|id), family=nbinom2, data=data)
 #summary(M2)
 
-#M3=glmmTMB(terri ~ SSS + agri5 + X + Y + X*Y + year*temp + year*prec + year*ndvi  + (1|fyear) + (1|id), family=nbinom2, data=data)
+#M3=glmmTMB(terri ~ SSS + agri5 +  X*Y + year*temp + year*prec + year*ndvi  + (1|fyear) + (1|id), family=nbinom2, data=data)  #tästä ehkä ndvi pois?
 #summary(M3)
 
-#M4=glmmTMB(terri ~ SSS + agri5 + X + Y + X*Y + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=data)
+#M4=glmmTMB(terri ~ SSS + agri5 +  X*Y + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=data)
 #summary(M4)
 
-#M5=glmmTMB(terri ~ SSS + agri5 + X + Y + X*Y + year*temp + year*prec + year*ndvi + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=data)
+#M5=glmmTMB(terri ~ SSS + agri5  + X*Y + year*temp + year*prec + year*ndvi + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=data)
 #summary(M5)
 ```
 
@@ -122,15 +137,11 @@ Mikään malleista ei näytä toimivan.
 
 Muuttuja 'id' eli jokaisen osapopulaaation yksilöivä tunniste on random-muuttuja koska se saattaa sisältää jotain informaatiota, jota fixed-muuttujat eivät sisällä koska koko populaatio ei ole täydellisesti edustettuna otoksessa.  
 
-Määritelmiä siitä, milloin effect on fixed tai random:  
-
--Effects are fixed if they are interesting in themselves or random if there is interest in the underlying population.  
-
--When a sample exhausts the population, the corresponding variable is fixed; when the sample is a small (i.e., negligible) part of the population the corresponding variable is random.  
+Määritelmiä siitä, milloin effect on fixed tai random: "Effects are fixed if they are interesting in themselves or random if there is interest in the underlying population. When a sample exhausts the population, the corresponding variable is fixed; when the sample is a small (i.e., negligible) part of the population the corresponding variable is random".  
 
 Mutta entäpä vuosi?  
 
-Random-efektinä se huomioisi vuosien välisen ajallisen riippuvuuden. Osapopulaatiolla, jolla on monta lauluryhmää yhtenä vuonna, on suuremmalla todennäköisyydellä monta lauluryhmää myös seuraavana vuonna.  
+Random-efektinä vuosi huomioisi vuosien välisen ajallisen riippuvuuden. Osapopulaatiolla, jolla on monta lauluryhmää yhtenä vuonna, on suuremmalla todennäköisyydellä monta lauluryhmää myös seuraavana vuonna.  
 Fixed-efektinä se selittäisi lauluryhmien määrässä tapahtuvaa vaihtelua suoraan. Vuodet ovat erilaisia (esim. tapahtumat Afrikassa vaihtelevat) ja jokin asia, jota emme ole tajunneet mitata voi selittyäkin vuodella.  
 
 
@@ -150,28 +161,56 @@ Joillain osapopulaatioilla on käyty vain kerran, joillain taas täydet 19 kerta
 
 Muuttujien skaalaaminen?
 
+Vuoden keskittäminen? Vuosi 2000 olisi baseline ja siitä eteenpäin vuosi 1,2,3 jne.
+
+Voiko glmmTMB:lle olla ongelma se, ettei joiltain osapopulaatioilta ole kuin yksi havainto?
+
 ```{r}
 #Pitäisikö aineisto skaalata?
-data=data %>%
+dataS=data %>%
    mutate_at(c(4,5,6,7,9:30), funs(c(scale(.))))
 
-#varsinaiset mallit:
-M1=glmer(terri ~ year + (1|fyear)+ (1|id), family=nbinom2, data=data)
+
+M1=glmmTMB(terri ~ year + (1|fyear)+ (1|id), family=nbinom2, data=dataS)
 summary(M1)
 
-table(data$id)
-
-M2=glmmTMB(terri ~ SSS + agri5   + X*Y + (1|year) + (1|id), family=nbinom2, data=data)
+M2=glmmTMB(terri ~ SSS + agri5 + X*Y + (1|fyear) + (1|id), family=nbinom2, data=dataS)
 summary(M2)
 
-M3=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec  + (1|year)  + (1|id), family=nbinom2, data=data)
+M3=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec  + (1|fyear)  + (1|id), family=nbinom2, data=dataS)
 summary(M3)
 
-M4=glmmTMB(terri ~ SSS + agri5 +  X*Y + year*shan + year*open  + (1|id), family=nbinom2, data=data)
+M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS)
 summary(M4)
 
-M5=glmmTMB(terri ~ SSS + agri5 +  X*Y + year*temp + year*prec + year*ndvi + year*shan + year*open  + (1|id), family=nbinom2, data=data)
+M5=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS)
 summary(M5)
 ```
 
-Joku vielä mättäää. Koordinaatit ovat isoja arvoja..
+Skaalaus ei auta (mean zero, unit variance). Mikään malleista ei toimi edelleenkään. 
+
+Entä eri paketilla?
+
+```{r}
+#glmer-paketti
+M1=glmer(terri ~ year + (1|fyear)+ (1|id), family=nbinom2, data=data)
+summary(M1)
+
+
+```
+
+
+
+```{r}
+#install.packages("R2admb")
+#install.packages("glmmADMB",repos=c("http://glmmadmb.r-forge.r-project.org/repos", getOption("repos")),type="source")
+
+library("glmmADMB")
+M1A=glmmadmb(terri ~ year + (1|fyear)+ (1|id), family="nbinom", data=data)
+summary(M1)
+
+
+M2=glmmTMB(terri ~ SSS + agri5   + X*Y + (1|year) + (1|id), family=nbinom2, data=data)
+summary(M2)
+```
+
