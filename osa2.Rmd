@@ -21,9 +21,8 @@ Tutkimuskysymykset:
 
 ```{r, include=FALSE}
 getwd()
-paketit<-c("readr","tidyr","plyr","dplyr","vegan","ggplot2","lattice","psych","glmmTMB","lme4")
+paketit<-c("readr","tidyr","plyr","dplyr","vegan","ggplot2","lattice","psych","glmmTMB","lme4","MASS","MuMIn")
 lapply(paketit,library,character.only=T)
-source("HighstatLibV12.R")
 ```
 
 
@@ -152,7 +151,9 @@ Lue aiheesta [täältä](https://www.theanalysisfactor.com/mixed-models-predicto
 
 Nested or crossed?
 
-Relatively few mixed effect modeling packages can handle crossed random effects, i.e. those where one level of a random effect can appear in conjunction with more than one level of another effect. (This definition is confusing, and I would happily accept a better one.) A classic example is crossed temporal and spatial effects. If there is random variation among temporal blocks (e.g. years) ‘’and’‘random variation among spatial blocks (e.g. sites),’‘and’‘if there is a consistent year effect across sites and’‘vice versa’’, then the random effects should be treated as crossed.  
+Relatively few mixed effect modeling packages can handle crossed random effects, i.e. those where one level of a random effect can appear in conjunction with more than one level of another effect. (This definition is confusing, and I would happily accept a better one.) A classic example is crossed temporal and spatial effects. If there is random variation among temporal blocks (e.g. years) ‘’and’‘random variation among spatial blocks (e.g. sites),’‘and’‘if there is a consistent year effect across sites and’‘vice versa’’, then the random effects should be treated as crossed. 
+
+Selkeä vastaus lötyy [täältä](https://stats.stackexchange.com/questions/228800/crossed-vs-nested-random-effects-how-do-they-differ-and-how-are-they-specified).
 
 
 Random-muuttujan havaintojen määrä?  
@@ -161,56 +162,100 @@ Joillain osapopulaatioilla on käyty vain kerran, joillain taas täydet 19 kerta
 
 Muuttujien skaalaaminen?
 
-Vuoden keskittäminen? Vuosi 2000 olisi baseline ja siitä eteenpäin vuosi 1,2,3 jne.
+Vuoden keskittäminen? Vuosi 2000 olisi baseline ja siitä eteenpäin vuosi 1,2,3 jne. Tai Cyear = year-mean(year). Uusi muuttuja.
 
-Voiko glmmTMB:lle olla ongelma se, ettei joiltain osapopulaatioilta ole kuin yksi havainto?
 
 ```{r}
 #Pitäisikö aineisto skaalata?
 dataS=data %>%
-   mutate_at(c(4,5,6,7,9:30), funs(c(scale(.))))
+   mutate_at(c(2,4,5,6,7,9:30), funs(c(scale(.))))
 
 
 M1=glmmTMB(terri ~ year + (1|fyear)+ (1|id), family=nbinom2, data=dataS)
-summary(M1)
 
-M2=glmmTMB(terri ~ SSS + agri5 + X*Y + (1|fyear) + (1|id), family=nbinom2, data=dataS)
-summary(M2)
+M2=glmmTMB(terri ~ SSS + agri5 + X*Y + year + (1|fyear) + (1|id), family=nbinom2, data=dataS)
 
 M3=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec  + (1|fyear)  + (1|id), family=nbinom2, data=dataS)
-summary(M3)
 
 M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS)
-summary(M4)
 
 M5=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+output1<-model.sel(M1,M2,M3,M4,M5) 
+
+# AICc Table
+output1
+
+#tehdään model averaging
+summary(model.avg(output1, revised.var = TRUE))
+
 summary(M5)
+
+M6=glmmTMB(terri ~ SSS + agri5 + X + Y + year + temp + prec + shan + open + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+M7=glmmTMB(terri ~ agri5 + X + Y + year + temp + prec + shan  + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+AIC(M6,M7)
+
+M8=glmmTMB(terri ~ agri5 + X + Y + year + temp + shan  + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+AIC(M7,M8)
+
+M9=glmmTMB(terri ~ agri5 + X + Y + year + shan  + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+AIC(M8,M9)
+
+M10=glmmTMB(terri ~ agri5  + Y + year + shan  + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+AIC(M9,M10)
+
+M11=glmmTMB(terri ~ agri5  + year + shan  + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+AIC(M10,M11)
+
+M12=glmmTMB(terri ~ Y + year + shan  + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+AIC(M10,M12)
+
+M13=glmmTMB(terri ~ agri5  + Y + year   + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+AIC(M10,M13)
+
+M14=glmmTMB(terri ~ agri5  + Y  + shan  + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+AIC(M10,M14)
 ```
 
-Skaalaus ei auta (mean zero, unit variance). Mikään malleista ei toimi edelleenkään. 
-
-Entä eri paketilla?
+Agri5, Y ja shan merkitseviä.
 
 ```{r}
-#glmer-paketti
-M1=glmer(terri ~ year + (1|fyear)+ (1|id), family=nbinom2, data=data)
-summary(M1)
+#neot erikseen
+N1=glmmTMB(terri ~ neo * year + X * Y + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+summary(N1)
 
+N2=glmmTMB(terri ~ neo + year + X + Y + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+AIC(N1,N2)
 
+N3=glmmTMB(terri ~ neo + year  + Y + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+AIC(N2,N3)
+
+N4=glmmTMB(terri ~ neo + Y + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+AIC(N3,N4)
+
+N5=glmmTMB(terri ~ neo + year  + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+AIC(N3,N5)
+
+N6=glmmTMB(terri ~  year + Y + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+AIC(N3,N6)
+
+summary(N3)
+summary(N6)
 ```
 
 
 
 ```{r}
-#install.packages("R2admb")
-#install.packages("glmmADMB",repos=c("http://glmmadmb.r-forge.r-project.org/repos", getOption("repos")),type="source")
-
-library("glmmADMB")
-M1A=glmmadmb(terri ~ year + (1|fyear)+ (1|id), family="nbinom", data=data)
-summary(M1)
 
 
-M2=glmmTMB(terri ~ SSS + agri5   + X*Y + (1|year) + (1|id), family=nbinom2, data=data)
-summary(M2)
+
 ```
-
