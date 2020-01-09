@@ -186,8 +186,10 @@ output1<-model.sel(M1,M2,M3,M4,M5)
 # AICc Table
 output1
 
+output2=model.sel(M4,M5)
+
 #tehdään model averaging
-summary(model.avg(output1, revised.var = TRUE))
+summary(model.avg(output2, revised.var = TRUE))
 
 summary(M5)
 
