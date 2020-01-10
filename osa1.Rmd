@@ -14,7 +14,7 @@ Lasketaan uusia muuttujia, jotka tiivistävät aineistoa. Osa muuttujista on "va
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-paketit<-c("readr","tidyr","plyr","dplyr","vegan","ggplot2")
+paketit<-c("readr","dplyr","vegan","ggplot2")
 lapply(paketit,library,character.only=T)
 ```
 
