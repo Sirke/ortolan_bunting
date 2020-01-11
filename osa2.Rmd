@@ -31,18 +31,17 @@ lapply(paketit,library,character.only=T)
 ```{r}
 data<-read.csv("OrtolanBunting.csv")
 
+names(data)
+str(data)
+summary(data)
+
 #tarkasta kaikkien luokkien muoto
 data$id<-as.factor(data$id)
-
-#pitäisikö vuosi olla factor vai integer?
+#vuodelle oma faktori-muuttuja
 data$fyear<-as.factor(data$year)
-
-names(data)
-summary(data)
-str(data)
 ```
 
-###Poikkeavia havaintoja
+### Poikkeavia havaintoja
 
 ```{r}
 #outliers
@@ -67,7 +66,7 @@ Muutamalla osapopulaatiolla on käyty vain kerran.
 
 ```{r, fig.width=14, fig.height=12}
 #relationships
-pairs.panels(data[,c(4:7,8:9,21:23,28:30)])
+pairs.panels(data[,c(3:21)])
 ```
 
 Reviirien lukumäärällä (terri) ja Shannon-Wienerin indeksillä (shan) on suht vahva korrelaatio. Keväällä kylvettävien kasvien osuus (open) ja keväällä pitkällä oraalla olevien kasvien (cover) osuudet ovat toistensa vastakohdat. Myös maatalousmaiseman osuus (agri5) ja pienrakenteiden tiheys (SSS) nousevat esille.
@@ -77,8 +76,8 @@ Reviirien lukumäärällä (terri) ja Shannon-Wienerin indeksillä (shan) on suh
 
 ```{r, fig.width=14, fig.height=12}
 #plottailua
-xyplot(terri~year|id, data=data)
-boxplot(terri~year, data=data)
+xyplot(terri~fyear|id, data=data)
+boxplot(terri~fyear, data=data)
 boxplot(terri~id, data=data)
 xyplot(terri~SSS, data=data)
 xyplot(terri~open, data=data)
@@ -154,7 +153,7 @@ Skaalataan aineisto ja kokeillaan glmm-malleja. Sovitetaan viisi hypoteesiemme m
 
 ```{r}
 dataS=data %>%
-   mutate_at(c(2,4,5,6,7,9:30), funs(c(scale(.))))
+   mutate_at(c(2,3,5,6,7,9:18,19,20), funs(c(scale(.))))
 
 
 M1=glmmTMB(terri ~ year + (1|fyear)+ (1|id), family=nbinom2, data=dataS)
@@ -196,13 +195,33 @@ Malleja pitäisi visualisoida jotenkin...
 
 ### GAM-malli,  Tweedie
 
+Päätettiin kokeilla mallinnusta niin, että selitettävänä muuttujana onkin reviirien tiheys. Näin osapopulaatioiden vaihteleva pinta-ala saadaan paremmin huomioitua. Osapopulaatiohan oli jo aikaisemminkin random-mmuuttujana, joten pinta-alan aiheuttama vaihtelu muuttujissa oli huomioitu jo jollain tasolla, mutta ei ehkä riittävästi.
+
+SSS eli pienten rakenteiden lukumäärä tai pituudet ovat myös suhteutettu osapopulaation pinta-alaan. Mietin, tuleeko pinta-ala tässä tapauksessa huomioitua kahteen kertaan?
+
 Tweedie-asiaa [netissä](https://stat.ethz.ch/R-manual/R-patched/library/mgcv/html/Tweedie.html).
 
-
+Luodaan uusi muuttuja 'terriD', joka on reviirien lkm jaettuna osapopulaation pinta-alalla (reviiriä/km2):
 
 ```{r}
-#reviirien tihey
-dataS$terriD=
+#reviirien tiheys
+dataS$terriD=dataS$terri/dataS$area
+summary(dataS$terriD)
+```
+
+Mallit..
+
+```{r}
+G1=gamm(terriD ~ year + (1|fyear)+ (1|id), family=nbinom2, data=dataS)
+
+M2=glmmTMB(terriD ~ SSS + agri5 + X*Y + year + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+M3=glmmTMB(terriD ~ SSS + agri5 + X*Y + year*temp + year*prec  + (1|fyear)  + (1|id), family=nbinom2, data=dataS)
+
+M4=glmmTMB(terriD ~ SSS + agri5 + X*Y + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+M5=glmmTMB(terriD ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
 ```
 
 

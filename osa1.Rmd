@@ -14,7 +14,7 @@ Lasketaan uusia muuttujia, jotka tiivistävät aineistoa. Osa muuttujista on "va
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-paketit<-c("readr","dplyr","vegan","ggplot2")
+paketit<-c("readr","dplyr","vegan","ggplot2","tidyr")
 lapply(paketit,library,character.only=T)
 ```
 
@@ -39,7 +39,7 @@ id = kunkin osapopulaation yksilöivä id-numero (vuosien 2000-2017 välillä te
 agri5  =    osapopulaation keskipisteen ympärille piirretyn 5 km säteen omaavan ympyrän sisälle jäävän maaseutu-maanpeitteen osuus (aineisto: Corine)
 
 
-area    =    kunkin osapopulaation pinta-ala (osapopulaatioksi tulkittujen havaintojen ympärille piirretty 300 metrin bufferi)  
+area    =    kunkin osapopulaation pinta-ala neliömetreissä (osapopulaatioksi tulkittujen havaintojen ympärille piirretty 300 metrin bufferi)  
 
 
 build  =     rakennusten lukumäärä osapopulaation alueella  
@@ -140,18 +140,18 @@ Lasketaan viljelyosuudet uusille ryhmille:
 
 ```{r}
 #valitaan ketjun perusteella sarakkeet ja lasketaan niistä summa uuden sarakkeen alle
-data %>% select(avomaavih) %>% rowSums(na.rm=TRUE) -> data$vege
-data %>% select(eitietoa) %>% rowSums(na.rm=TRUE) -> data$unkno
-data %>% select(erikois) %>% rowSums(na.rm=TRUE) -> data$spec
-data %>% select(marjat) %>% rowSums(na.rm=TRUE) -> data$fruit
-data %>% select(viljat) %>% rowSums(na.rm=TRUE) -> data$cere
-data %>% select(mausteet) %>% rowSums(na.rm=TRUE) -> data$herb
-data %>% select(nurmet) %>% rowSums(na.rm=TRUE) -> data$gras
-data %>% select(syysviljat) %>% rowSums(na.rm=TRUE) -> data$wint
-data %>% select(valkuais) %>% rowSums(na.rm=TRUE) -> data$prot
-data %>% select(oljy) %>% rowSums(na.rm=TRUE) -> data$oil
+data %>% dplyr::select(avomaavih) %>% rowSums(na.rm=TRUE) -> data$vege
+data %>% dplyr::select(eitietoa) %>% rowSums(na.rm=TRUE) -> data$unkno
+data %>% dplyr::select(erikois) %>% rowSums(na.rm=TRUE) -> data$spec
+data %>% dplyr::select(marjat) %>% rowSums(na.rm=TRUE) -> data$fruit
+data %>% dplyr::select(viljat) %>% rowSums(na.rm=TRUE) -> data$cere
+data %>% dplyr::select(mausteet) %>% rowSums(na.rm=TRUE) -> data$herb
+data %>% dplyr::select(nurmet) %>% rowSums(na.rm=TRUE) -> data$gras
+data %>% dplyr::select(syysviljat) %>% rowSums(na.rm=TRUE) -> data$wint
+data %>% dplyr::select(valkuais) %>% rowSums(na.rm=TRUE) -> data$prot
+data %>% dplyr::select(oljy) %>% rowSums(na.rm=TRUE) -> data$oil
 #neo erikseen
-data %>% select(neot) %>% rowSums(na.rm=TRUE) -> data$neo
+data %>% dplyr::select(neot) %>% rowSums(na.rm=TRUE) -> data$neo
 ```
 
 Tarkastellaan yksittäisten viljelykasvilajien osuuksia aineistossa:
@@ -202,6 +202,8 @@ data<-mutate(data, cover = gras+wint)
 Lasketaan rakennusten, teiden, purojen ja jokien tiheys suhteessa osapopulaation pinta-alaan (nyt jokainen erikseen, pitäisikö yhdistää yhdeksi muuttujaksi?)
 
 ```{r}
+#muutetaan area neliökilometreiksi
+data$area=data$area/1000000
 data<-mutate(data, Abuild = build/area)
 data<-mutate(data, Ariver = river/area)
 data<-mutate(data, Astream = stream/area)
@@ -213,7 +215,7 @@ data<-mutate(data, Aroad = roads/area)
 Jos halutaan vielä tiivistää myös kaikki rakenteet yhteen muuttujaan ('SSS', small-scale structures)
 
 ```{r}
-data<-mutate(data, SSS = Abuild+Aroad+Ariver+Astream)
+data<-dplyr::mutate(data, SSS = Abuild+Aroad+Ariver+Astream)
 ```
 
 
@@ -222,21 +224,18 @@ data<-mutate(data, SSS = Abuild+Aroad+Ariver+Astream)
 Karsitaan yksittäiset viljelykasvisarakkeet aineistosta pois, lisätään osapopulaatioiden koordinaatit ja poistetaan aineistosta kaikki ne vuodet, jolloin osapopulaatiota ei käyty tarkistamassa.
 
 ```{r}
-data<-data[,c(1:4,7:8,12:13,249:268)]
+data<-data[,c(1:2,4:5,7:8,12:13,249:250,261:268)]
 
 #koordinaatit
-koord=select(koord,id,X,Y)
+koord=dplyr::select(koord,id,X,Y)
 data<-left_join(data,koord,by="id")
 
 names(data)
 ```
 
-Mukana on siis vielä 30 (osin vaihtoehtoista) muuttujaa.
+Mukana on siis vielä 20 (osin vaihtoehtoista) muuttujaa.
 
 ```{r}
-#tarkasta kaikkien luokkien muoto
-data$id<-as.factor(data$id)
-
 #poista aineistosta paikat, joilla ei ole kayty
 data=data %>% drop_na("terri")
 ```
