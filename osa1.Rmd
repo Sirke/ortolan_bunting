@@ -36,6 +36,9 @@ Muuttujien selitykset:
 
 id = kunkin osapopulaation yksilöivä id-numero (vuosien 2000-2017 välillä tehdyt havaintoryppäät, jotka tulkitaan lauluryhmäksi)  
 
+site   =     osapopulaation sijainti  
+
+
 agri5  =    osapopulaation keskipisteen ympärille piirretyn 5 km säteen omaavan ympyrän sisälle jäävän maaseutu-maanpeitteen osuus (aineisto: Corine)
 
 
@@ -119,7 +122,7 @@ viljat<-c("X5853","X5831","X1211","X2190","X2195","X1140","X10","X1120","X1142",
 
 mausteet<-c("X4800","X4810","X5152","X5806","X5824","X5842","X5843","X5846","X5850","X5851")
 
-nurmet<-c("X6051","X2420","X2196","X2197","X9050","X9060","X9061","X9421","X94","X95","X90","X63","X60","X6050","X6060","X6111","X6112","X6113","X6114","X6121","X6122","X6123","X6124","X6125","X6210","X6220","X6221","X6230","X6300","X6301","X6302","X6400","X6402","X6542","X6545","X6550","X6561","X6562","X6563","X6565","X6600","X6700","X6710","X6720","X7110","X9100","X9101","X9102","X9110","X9111","X9400","X9401","X9402","X9403","X9404","X9405","X9406","X9407","X9408","X9412","X9413","X9422","X9423","X9424","X9430","X9440","X9460","X9600","X9620","X9700","X9710","X9720","X9801","X9810","X9811","X9812","X9800","X9820","X9802","X9803",	"X9804","X9805",	"X9806","X9807","X9808")
+nurmet<-c("X6051","X2420","X2196","X2197","X9050","X9060","X9061","X9421","X94","X95","X90","X63","X60","X6050","X6060","X6111","X6112","X6113","X6114","X6121","X6122","X6123","X6124","X6125","X6210","X6220","X6221","X6230","X6300","X6301","X6302","X6400","X6402","X6542","X6545","X6546","X6550","X6561","X6562","X6563","X6565","X6600","X6700","X6710","X6720","X7110","X9100","X9101","X9102","X9110","X9111","X9400","X9401","X9402","X9403","X9404","X9405","X9406","X9407","X9408","X9412","X9413","X9422","X9423","X9424","X9430","X9440","X9460","X9600","X9620","X9700","X9710","X9720","X9801","X9810","X9811","X9812","X9800","X9820","X9802","X9803",	"X9804","X9805",	"X9806","X9807","X9808")
 
 syysviljat<-c("X1110","X1141","X1230","X4120","X4220")
 
@@ -195,14 +198,14 @@ data<-mutate(data, open = cere+vege+oil+prot) #pitäisikö vielä lisätä herb,
 data<-mutate(data, cover = gras+wint)
 ```
 
-
+Huomaa, että open ja cover ovat käytännössä toistensa vastakohdat eli summautuvat melkeinpä yhteen.
 
 ### Pienimuotoisten rakenteiden tiheys
 
 Lasketaan rakennusten, teiden, purojen ja jokien tiheys suhteessa osapopulaation pinta-alaan (nyt jokainen erikseen, pitäisikö yhdistää yhdeksi muuttujaksi?)
 
 ```{r}
-#muutetaan area neliökilometreiksi
+#muutetaan pinta-ala neliökilometreiksi
 data$area=data$area/1000000
 data<-mutate(data, Abuild = build/area)
 data<-mutate(data, Ariver = river/area)
