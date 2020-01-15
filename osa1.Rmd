@@ -5,9 +5,9 @@ date: "9 joulukuuta 2019"
 output: html_document
 ---
 
-# Peltosirkkuaineiston muokkaus 
+# 1. Peltosirkkuaineiston muokkaus 
 
-## Uusien muuttujien laskeminen
+## 1.1 Uusien muuttujien laskeminen
 
 Lasketaan uusia muuttujia, jotka tiivistävät aineistoa. Osa muuttujista on "vaihtoehtoisia", niiden sisältämä tieto saattaa kuulua kahteen eri muuttujaan. 
 
@@ -18,7 +18,7 @@ paketit<-c("readr","dplyr","vegan","ggplot2","tidyr")
 lapply(paketit,library,character.only=T)
 ```
 
-### Aineisto sisälle ja tarkastelu
+### 1.1.1 Aineisto sisälle ja tarkastelu
 
 ```{r}
 getwd()
@@ -78,13 +78,14 @@ X...   =     viljelykasviluokkien osuudet, Huom! muuttuja X99999 on "ei tietoa v
 
 Eri viljelykasveja on mukana yli toistasataa! Suurin osa tietysti nollaa.
 
+Koordinaatit tulivat eri tiedostosta:
 
 ```{r}
 head(koord)
 ```
 
 
-### Shannon-Wienerin indeksi
+### 1.1.2 Shannon-Wienerin indeksi
 
 Shannon-Wienerin indeksin laskeminen viljylykasvidiversiteetille. Mukaan laskuihin on (kai) otettava muuttuja '99999' eli 'ei tietoa kasvilajista' koska 
 muuten osuudet eivät summaudu yhteen.
@@ -94,7 +95,7 @@ muuten osuudet eivät summaudu yhteen.
 data<-mutate(data, shan = diversity(data[,15:248],index="shannon"))
 ```
 
-### Viljelykasvilajien lukumäärä
+### 1.1.3 Viljelykasvilajien lukumäärä
 
 Kasvilajien lukumäärä ('99999' mukana). Huomioi, että todellisuudessa tämä muuttuja voi kuvastaa vain EU-tukiryhmien moninaisuutta, lajithan voivat olla samaa nurmea koko ajan mutta eri kategorioissa.
 
@@ -103,7 +104,7 @@ Kasvilajien lukumäärä ('99999' mukana). Huomioi, että todellisuudessa tämä
 data<-mutate(data, snum= rowSums(data[,15:248]>0))
 ```
 
-### Viljelykasvilajien ryhmittely
+### 1.1.4 Viljelykasvilajien osuudet peltopinta-alasta
 
 Alustava jaottelu kymmeneen ryhmään:
 
@@ -166,11 +167,13 @@ sp<-names(data[,15:248])
 sp<- as.data.frame((cbind(sp,osuudet)),row.names = F)
 sp$osuudet<-as.numeric(as.character(sp$osuudet))
 
-#viljelykasvien pinta-alojen jakauma
+#viljelykasvien osuuksien jakauma
 ggplot(sp, aes(x=osuudet))+geom_histogram()
 ```
 
 Vain muutama laji dominoi viljelyosuuksissa.
+
+Yleisimmät viljelykasvit:
 
 ```{r}
 #yleisimmät viljelykasvit
@@ -180,6 +183,8 @@ sp %>%
 
 Yleisimmät lajit ovat kevätvehnä (1120), kaura (1400), rehuohra (1310), monivuotiset kuivaheinä-, säilörehu- ja tuorerehunurmet (6121), mallasohra (1320), kevätrypsi (4110) ja syysvehnä (1110).
 
+Kasviryhmien osuudet: 
+
 ```{r}
 #kasviryhmien keskimääräiset osuudet kaikilta vuosilta
 colMeans(data[,251:260])
@@ -187,8 +192,6 @@ colMeans(data[,251:260])
 
 Viljat ja nurmet dominoivat. Öljykasvit ja syysviljat tulevat perässä.
 
-
-#### Viljelykasviryhmien tiivistäminen 
 
 Jos halutaan vielä tiivistää viljelykasviryhmiä, voidaan lajitella kasvit kahteen ryhmään. Toinen ryhmä (open) käsittää kasvit, jotka ovat keväällä peltosirkkujen pesimäaikaan vasta kylvövaiheessa (tai lyhyellä oraalla?). Toinen ryhmä (cover) käsittää kasvit, jotka ovat keväällä jo pidemmällä kasvussa ja niiden peittävyys on suurempi.
 
@@ -200,9 +203,9 @@ data<-mutate(data, cover = gras+wint)
 
 Huomaa, että open ja cover ovat käytännössä toistensa vastakohdat eli summautuvat melkeinpä yhteen.
 
-### Pienimuotoisten rakenteiden tiheys
+### 1.1.5 Pienimuotoisten rakenteiden tiheys
 
-Lasketaan rakennusten, teiden, purojen ja jokien tiheys suhteessa osapopulaation pinta-alaan (nyt jokainen erikseen, pitäisikö yhdistää yhdeksi muuttujaksi?)
+Lasketaan rakennusten, teiden, purojen ja jokien tiheys suhteessa osapopulaation pinta-alaan:
 
 ```{r}
 #muutetaan pinta-ala neliökilometreiksi
@@ -213,16 +216,14 @@ data<-mutate(data, Astream = stream/area)
 data<-mutate(data, Aroad = roads/area)
 ```
 
-#### Rakenteiden tiivistäminen 
-
-Jos halutaan vielä tiivistää myös kaikki rakenteet yhteen muuttujaan ('SSS', small-scale structures)
+Jos halutaan vielä tiivistää kaikki rakenteet yhteen muuttujaan ('SSS', small-scale structures):
 
 ```{r}
 data<-dplyr::mutate(data, SSS = Abuild+Aroad+Ariver+Astream)
 ```
 
 
-## Aineiston siistiminen
+## 1.2 Aineiston siistiminen
 
 Karsitaan yksittäiset viljelykasvisarakkeet aineistosta pois, lisätään osapopulaatioiden koordinaatit ja poistetaan aineistosta kaikki ne vuodet, jolloin osapopulaatiota ei käyty tarkistamassa.
 
@@ -234,14 +235,14 @@ koord=dplyr::select(koord,id,X,Y)
 data<-left_join(data,koord,by="id")
 
 names(data)
+
+#poista aineistosta paikat, joilla ei ole kayty
+data=data %>% drop_na("terri")
 ```
 
 Mukana on siis vielä 20 (osin vaihtoehtoista) muuttujaa.
 
-```{r}
-#poista aineistosta paikat, joilla ei ole kayty
-data=data %>% drop_na("terri")
-```
+Tallennetaan aineisto:
 
 ```{r}
 #tallennetaan

@@ -5,7 +5,7 @@ date: "9 joulukuuta 2019"
 output: html_document
 ---
 
-# Peltosirkkuaineiston analyysi
+# 2. Peltosirkkuaineiston analyysi
 
 Tutkimuskysymykset:  
 
@@ -26,7 +26,9 @@ lapply(paketit,library,character.only=T)
 ```
 
 
-## Aineiston tarkastelua
+## 2.1 Aineiston tarkastelua
+
+Luetaan aineisto sisään ja tarkistetaan, että luokkamuuttujat ovat oikein ja ettei joukossa ole NA:ta:
 
 ```{r}
 data<-read.csv("OrtolanBunting.csv")
@@ -41,28 +43,38 @@ data$id<-as.factor(data$id)
 data$fyear<-as.factor(data$year)
 ```
 
-### Poikkeavia havaintoja
+### 2.1.1 Poikkeavia havaintoja
 
+Tarkastellaan havaintoja yksitellen, onko mukana virheitä tai poikkeavia havaintoja:
 ```{r}
 #outliers
-dotchart(data$terri, main= "territories")
+dotchart(data$terri, main= "N territories")
 dotchart(data$prec, main= "precipitation")
 dotchart(data$temp, main= "temperature")
-dotchart(data$open, main= "spring sown")
-dotchart(data$SSS, main= "small-scale structures")
-
-hist(data$terri)
-
-#kuinka monta käyntikertaa per osapopulaatio?
-table(data$id)
+dotchart(data$open, main= "open (spring sown)")
+dotchart(data$SSS, main= "SSS (small-scale structures)")
 ```
 
-Aineistossa on muutama MEGAosapopulaatio. Suurimmaksi osaksi pienempiä.  
+Kuinka monta reviiriä per osapopulaatio?
+```{r}
+hist(data$terri)
+table(data$terri)
+```
+
+Aineistossa on muutama "MEGA"osapopulaatio. Suurimmaksi osaksi osapopulaatiot ovat tyhjiä tai niillä on muutama reviiri.  
+
+Kuinka monta käyntikertaa per osapopulaatio?
+
+```{r}
+sort(table(data$id))
+```
 
 Muutamalla osapopulaatiolla on käyty vain kerran.
 
 
-### Riippuvuussuhteita
+### 2.1.2 Riippuvuussuhteita
+
+Tarkastellaan muuttujia suhteessa toisiinsa:
 
 ```{r, fig.width=14, fig.height=12}
 #relationships
@@ -72,7 +84,9 @@ pairs.panels(data[,c(3:21)])
 Reviirien lukumäärällä (terri) ja Shannon-Wienerin indeksillä (shan) sekä lajien lukumäärällä (snum) on suht vahva korrelaatio. Keväällä kylvettävien kasvien osuus (open) ja keväällä pitkällä oraalla olevien kasvien (cover) osuudet ovat toistensa vastakohdat. Myös maatalousmaiseman osuus (agri5) ja pienrakenteiden tiheys (SSS) nousevat esille. Huomaa, että teiden ja rakennusten yhteys on negatiivinen, kun taas jokien ja purojen on positiivinen.
 
 
-### Lisää plottailua
+### 2.1.3 Lisää plottailua
+
+Katsotaan reviirien määrän kehitystä kullakin osapopulaatiolla:
 
 ```{r, fig.width=14, fig.height=12}
 #plottailua
@@ -84,8 +98,10 @@ xyplot(terri~open, data=data)
 xyplot(terri~cover, data=data)
 ```
 
+Trendi näyttäisi yleisesti olevan laskeva.
 
-## Mallit
+
+## 2.2 Mallit
 
 Peruspiirteittäin suunniteltiin mallit näin:
 
@@ -104,7 +120,7 @@ Kov(ariaatit) tarkoittaa SSS, agri5 ja koordinaatteja. ("pakolliset kovariaatit"
 Weather tarkoittaa sadantaa ja lämpötilaa.  
 Pelto tarkoittaa shannon-indeksiä ja avoimen maan osuutta (open).
 
-### Nested/crossed, hierarchical ja muita ajatuksia
+### 2.2.1 Nested/crossed, hierarchical ja muita ajatuksia
 
 ```{r}
 #Aksun esimerkit (näissä mukana NDVI):
@@ -147,7 +163,7 @@ Muuttujien skaalaaminen?
 
 Vuoden keskittäminen? Vuosi 2000 olisi baseline ja siitä eteenpäin vuosi 1,2,3 jne. Tai Cyear = year-mean(year). Uusi muuttuja.
 
-### GLMM-mallit
+### 2.2.2 GLMM-mallit
 
 Skaalataan aineisto ja kokeillaan glmm-malleja. Sovitetaan viisi hypoteesiemme mukaista glmm-mallia ja tulostetaan niiden AICc-taulukko: 
 
@@ -193,11 +209,11 @@ summary(M4)
 Malleja pitäisi visualisoida jotenkin...
 
 
-### GAM-malli,  Tweedie
+### 2.2.3 GAM-malli, Tweedie
 
 Päätettiin kokeilla mallinnusta niin, että selitettävänä muuttujana onkin reviirien tiheys. Näin osapopulaatioiden vaihteleva pinta-ala saadaan paremmin huomioitua. Osapopulaatiohan oli jo aikaisemminkin random-mmuuttujana, joten pinta-alan aiheuttama vaihtelu muuttujissa oli huomioitu jo jollain tasolla, mutta ei ehkä riittävästi.
 
-SSS eli pienten rakenteiden lukumäärä tai pituudet ovat myös suhteutettu osapopulaation pinta-alaan. Mietin, tuleeko pinta-ala tässä tapauksessa huomioitua kahteen kertaan?
+SSS eli pienten rakenteiden lukumäärä tai pituudet on suhteutettu osapopulaation pinta-alaan. Mietin, tuleeko pinta-ala tässä tapauksessa huomioitua kahteen kertaan?
 
 Tweedie-asiaa [täällä](https://stat.ethz.ch/R-manual/R-patched/library/mgcv/html/Tweedie.html) ja mgcv-paketista [täällä](https://people.maths.bris.ac.uk/~sw15190/mgcv/tampere/mgcv.pdf). "Tweedie is an alternative to quasi when var(y) = φµp , 1 < p < 2, and a full distribution is required (for a non-negative real response)."
 
@@ -209,23 +225,23 @@ dataS$terriD=dataS$terri/dataS$area
 summary(dataS$terriD)
 ```
 
-Mallit..
+Mallit..tähän jäin..
 
 ```{r}
-G1=gamm(terriD ~ year + (1|fyear)+ (1|id), family=nbinom2, data=dataS)
+#G1=gamm(terriD ~ year + (1|fyear)+ (1|id), family=nbinom2, data=dataS)
 
-M2=glmmTMB(terriD ~ SSS + agri5 + X*Y + year + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+#M2=glmmTMB(terriD ~ SSS + agri5 + X*Y + year + (1|fyear) + (1|id), family=nbinom2, data=dataS)
 
-M3=glmmTMB(terriD ~ SSS + agri5 + X*Y + year*temp + year*prec  + (1|fyear)  + (1|id), family=nbinom2, data=dataS)
+#M3=glmmTMB(terriD ~ SSS + agri5 + X*Y + year*temp + year*prec  + (1|fyear)  + (1|id), family=nbinom2, data=dataS)
 
-M4=glmmTMB(terriD ~ SSS + agri5 + X*Y + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+#M4=glmmTMB(terriD ~ SSS + agri5 + X*Y + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS)
 
-M5=glmmTMB(terriD ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+#M5=glmmTMB(terriD ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS)
 
 ```
 
 
-### Neo-muuttuja erikseen
+### 2.3 Neo-mallit erikseen
 
 Lägi-malli. Viime vuoden viljely osapopulaation alueella.
 Aineisto kolmeen maantieteelliseen alueeseen. Alueiden vertailu.
@@ -256,8 +272,4 @@ summary(N6)
 
 
 
-```{r}
 
-
-
-```
