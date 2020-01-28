@@ -81,7 +81,9 @@ Tarkastellaan muuttujia suhteessa toisiinsa:
 pairs.panels(data[,c(3:21)])
 ```
 
-Reviirien lukumäärällä (terri) ja Shannon-Wienerin indeksillä (shan) sekä lajien lukumäärällä (snum) on suht vahva korrelaatio. Keväällä kylvettävien kasvien osuus (open) ja keväällä pitkällä oraalla olevien kasvien (cover) osuudet ovat toistensa vastakohdat. Myös maatalousmaiseman osuus (agri5) ja pienrakenteiden tiheys (SSS) nousevat esille. Huomaa, että teiden ja rakennusten yhteys on negatiivinen, kun taas jokien ja purojen on positiivinen.
+Reviirien lukumäärällä (terri) ja Shannon-Wienerin indeksillä (shan) sekä lajien lukumäärällä (snum) on suht vahva korrelaatio. Myös maatalousmaiseman osuus (agri5) ja pienrakenteiden tiheys (SSS) nousevat esille. Huomaa, että teiden ja rakennusten yhteys on negatiivinen, kun taas jokien ja purojen on positiivinen.
+
+Keväällä kylvettävien kasvien osuus (open) ja keväällä pidemmällä oraalla olevien kasvien (cover) osuudet ovat toistensa vastakohdat.
 
 
 ### 2.1.3 Lisää plottailua
@@ -225,25 +227,41 @@ dataS$terriD=dataS$terri/dataS$area
 summary(dataS$terriD)
 ```
 
+```{r, fig.width=14, fig.height=12}
+#relationships
+pairs.panels(dataS[,c(3:22)])
+```
+
 Mallit..tähän jäin..
 
 ```{r}
-#G1=gamm(terriD ~ year + (1|fyear)+ (1|id), family=nbinom2, data=dataS)
+G1=gamm(terriD ~ s(year), random=list(fyear=~1,id=~1), data=dataS)
 
-#M2=glmmTMB(terriD ~ SSS + agri5 + X*Y + year + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+G2=gamm(terriD ~ s(SSS) + s(agri5) + s(X,Y) + s(year), random=list(fyear=~1,id=~1), data=dataS)
 
-#M3=glmmTMB(terriD ~ SSS + agri5 + X*Y + year*temp + year*prec  + (1|fyear)  + (1|id), family=nbinom2, data=dataS)
+G3=gamm(terriD ~ s(SSS) + s(agri5) + s(X,Y) + s(year) + s(year,temp) + s(year,prec), random=list(fyear=~1,id=~1), data=dataS)
 
-#M4=glmmTMB(terriD ~ SSS + agri5 + X*Y + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+G4=gamm(terriD ~ s(SSS) + s(agri5) + s(X,Y) + s(year) + s(year,shan) + s(year,open), random=list(fyear=~1,id=~1), data=dataS)
 
-#M5=glmmTMB(terriD ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+G5=gamm(terriD ~ s(SSS) + s(agri5) + s(X,Y) + s(year) + s(year,shan) + s(year,open)+ s(year,temp) + s(year,prec), random=list(fyear=~1,id=~1), data=dataS)
 
+
+
+op=par(mfrow=c(2,2))
+plot(G2$gam,select=c(1))
+plot(G2$gam,select=c(2))
+plot(G2$gam,select=c(3))
+plot(G2$gam,select=c(4))
+E=resid(G1$lme, type="normalized")
+F=fitted(G1$lme)
+plot(x=F, y=E,xlab="fitted values", ylab="Residuals", cex=0.3)
+par(op)
 ```
 
 
 ### 2.3 Neo-mallit erikseen
 
-Lägi-malli. Viime vuoden viljely osapopulaation alueella.
+Lag-malli. Viime vuoden viljely osapopulaation alueella vaikuttaa seuraavan vuoden reviirimääriin.
 Aineisto kolmeen maantieteelliseen alueeseen. Alueiden vertailu.
 
 ```{r}
