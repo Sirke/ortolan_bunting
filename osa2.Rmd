@@ -217,7 +217,7 @@ Päätettiin kokeilla mallinnusta niin, että selitettävänä muuttujana onkin 
 
 SSS eli pienten rakenteiden lukumäärä tai pituudet on suhteutettu osapopulaation pinta-alaan. Mietin, tuleeko pinta-ala tässä tapauksessa huomioitua kahteen kertaan?
 
-Tweedie-asiaa [täällä](https://stat.ethz.ch/R-manual/R-patched/library/mgcv/html/Tweedie.html) ja mgcv-paketista [täällä](https://people.maths.bris.ac.uk/~sw15190/mgcv/tampere/mgcv.pdf). "Tweedie is an alternative to quasi when var(y) = φµp , 1 < p < 2, and a full distribution is required (for a non-negative real response)."
+Tweedie-asiaa [täällä](https://stat.ethz.ch/R-manual/R-patched/library/mgcv/html/Tweedie.html) ja mgcv-paketista [täällä](https://people.maths.bris.ac.uk/~sw15190/mgcv/tampere/mgcv.pdf) ja [täällä](https://cran.r-project.org/web/packages/mgcv/mgcv.pdf). "Tweedie is an alternative to quasi when var(y) = φµp , 1 < p < 2, and a full distribution is required (for a non-negative real response)."
 
 Luodaan uusi muuttuja 'terriD', joka on reviirien lkm jaettuna osapopulaation pinta-alalla (reviiriä/km2):
 
@@ -227,24 +227,35 @@ dataS$terriD=dataS$terri/dataS$area
 summary(dataS$terriD)
 ```
 
+Plotataan aineisto uudelleen, laajemmin ja tarkemmin. 
+
 ```{r, fig.width=14, fig.height=12}
 #relationships
 pairs.panels(dataS[,c(3:22)])
+pairs.panels(dataS[,c("terriD","year","agri5","prec","temp","shan","open","SSS","X","Y")])
 ```
 
-Mallit..tähän jäin..
+Reviiritiheyshän lisääntyy vuosien myötä. Hmm..  
+Sadanta ja lämpötila negatiivisesti korreloituneita. 
+
+Mallien sovitus:  HJÄLP! Vaikea löytää esimerkkejä. Tässä joitain: [esim1](https://gist.github.com/gavinsimpson/6d05af9186b9f9419cca5a4507af3aa0), 
+
 
 ```{r}
-G1=gamm(terriD ~ s(year), random=list(fyear=~1,id=~1), data=dataS)
+G1=gamm(terriD ~ s(year), random=list(fyear=~1,id=~1), data=dataS, family=Tweedie(p=1.225))
 
-G2=gamm(terriD ~ s(SSS) + s(agri5) + s(X,Y) + s(year), random=list(fyear=~1,id=~1), data=dataS)
+#G2=gamm(terriD ~ s(SSS) + s(agri5) + s(X,Y) + s(year), random=list(fyear=~1,id=~1), data=dataS, family=Tweedie(p=1.225))
 
-G3=gamm(terriD ~ s(SSS) + s(agri5) + s(X,Y) + s(year) + s(year,temp) + s(year,prec), random=list(fyear=~1,id=~1), data=dataS)
+#G3=gamm(terriD ~ s(SSS) + s(agri5) + s(X,Y) + s(year) + s(year,temp) + s(year,prec), random=list(fyear=~1,id=~1), data=dataS, family=Tweedie(p=1.225))
 
-G4=gamm(terriD ~ s(SSS) + s(agri5) + s(X,Y) + s(year) + s(year,shan) + s(year,open), random=list(fyear=~1,id=~1), data=dataS)
+#G4=gamm(terriD ~ s(SSS) + s(agri5) + s(X,Y) + s(year) + s(year,shan) + s(year,open), random=list(fyear=~1,id=~1), data=dataS, family=Tweedie(p=1.225))
 
-G5=gamm(terriD ~ s(SSS) + s(agri5) + s(X,Y) + s(year) + s(year,shan) + s(year,open)+ s(year,temp) + s(year,prec), random=list(fyear=~1,id=~1), data=dataS)
+#G5=gamm(terriD ~ s(SSS) + s(agri5) + s(X,Y) + s(year) + s(year,shan) + s(year,open)+ s(year,temp) + s(year,prec), random=list(fyear=~1,id=~1), data=dataS, family=Tweedie(p=1.225))
+```
 
+Mallin validointia...
+
+```{r,, eval=FALSE, include=FALSE}
 
 
 op=par(mfrow=c(2,2))
@@ -252,8 +263,8 @@ plot(G2$gam,select=c(1))
 plot(G2$gam,select=c(2))
 plot(G2$gam,select=c(3))
 plot(G2$gam,select=c(4))
-E=resid(G1$lme, type="normalized")
-F=fitted(G1$lme)
+E=resid(G2$lme, type="normalized")
+F=fitted(G2$lme)
 plot(x=F, y=E,xlab="fitted values", ylab="Residuals", cex=0.3)
 par(op)
 ```
@@ -261,8 +272,13 @@ par(op)
 
 ### 2.3 Neo-mallit erikseen
 
+Pitäisiköhän nämäkin analyysit tehdä reviiritiheydellä ja GAMM-malleilla?
+
+Heikin graduun:
 Lag-malli. Viime vuoden viljely osapopulaation alueella vaikuttaa seuraavan vuoden reviirimääriin.
-Aineisto kolmeen maantieteelliseen alueeseen. Alueiden vertailu.
+Aineisto jaetaan kolmeen maantieteelliseen alueeseen. Alueiden vertailu.
+
+
 
 ```{r}
 #neot erikseen
