@@ -227,18 +227,25 @@ dataS$terriD=dataS$terri/dataS$area
 summary(dataS$terriD)
 ```
 
-Plotataan aineisto uudelleen, laajemmin ja tarkemmin. 
+Plotataan aineisto uudelleen, kaksi kuvaajaa: 
 
 ```{r, fig.width=14, fig.height=12}
 #relationships
 pairs.panels(dataS[,c(3:22)])
-pairs.panels(dataS[,c("terriD","year","agri5","prec","temp","shan","open","SSS","X","Y")])
+pairs.panels(dataS[,c("terriD","fyear","agri5","prec","temp","shan","open","SSS","X","Y")])
+
+ggplot(dataS, aes(x=year,y=terriD))+ geom_point() + geom_smooth()
 ```
 
-Reviiritiheyshän lisääntyy vuosien myötä. Hmm..  
+Reviiritiheys mennyt alas, ylös ja alas.
+
 Sadanta ja lämpötila negatiivisesti korreloituneita. 
 
-Mallien sovitus:  HJÄLP! Vaikea löytää esimerkkejä. Tässä joitain: [esim1](https://gist.github.com/gavinsimpson/6d05af9186b9f9419cca5a4507af3aa0), 
+Mallien sovitus:  HJÄLP! Vaikea löytää esimerkkejä. Tässä joitain: [esim1](https://gist.github.com/gavinsimpson/6d05af9186b9f9419cca5a4507af3aa0),   
+
+
+
+Muuttujan voi laittaa random-tekijäksi myös määrittämällä se smootherissa: s(...,bs="re")  Lue [tämä](https://stat.ethz.ch/R-manual/R-devel/library/mgcv/html/random.effects.html). 
 
 
 ```{r}
@@ -252,6 +259,7 @@ G1=gamm(terriD ~ s(year), random=list(fyear=~1,id=~1), data=dataS, family=Tweedi
 
 #G5=gamm(terriD ~ s(SSS) + s(agri5) + s(X,Y) + s(year) + s(year,shan) + s(year,open)+ s(year,temp) + s(year,prec), random=list(fyear=~1,id=~1), data=dataS, family=Tweedie(p=1.225))
 ```
+
 
 Mallin validointia...
 
@@ -278,9 +286,25 @@ Heikin graduun:
 Lag-malli. Viime vuoden viljely osapopulaation alueella vaikuttaa seuraavan vuoden reviirimääriin.
 Aineisto jaetaan kolmeen maantieteelliseen alueeseen. Alueiden vertailu.
 
+```{r, fig.width=14, fig.height=12}
+pairs.panels(dataS[,c("terriD","year","neo","agri5","shan","open","X","Y")])
 
+ggplot(dataS, aes(x=year,y=terriD))+ geom_point() + geom_smooth()
+```
+
+Neo = lineaarinen, mitä enemmän neonikotinoideja sen vähemmän reviirejä
+shan = additiivinen, hyvin yksipuolisesta viljelystä edes muutamaan lajiin siirryttäessä suuri positiivinen vaikutus reviirien määrään, sen jälkeen tasaantuu ja jopa laskee
+agri5 = additiivinen, olisko pieni notkahdus reviireissä jos oikein paljon peltoa maisemassa?
+open = ei oikein mitään vaikutusta, korreloi neon kanssa
+Y = reviirejä enemmän etelässä
 
 ```{r}
+#neot tiheydellä, gamm
+
+
+#neot offsetilla, glmm
+NO1=lme(terri ~ offset(area) + neo + year + X*Y + (1|fyear) + (1|id), family=nbinom2, data=data)
+
 #neot erikseen
 N1=glmmTMB(terri ~ neo * year + X * Y + (1|fyear) + (1|id), family=nbinom2, data=dataS)
 summary(N1)

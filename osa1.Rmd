@@ -26,8 +26,8 @@ localDir = "."
 DataDir = file.path(localDir, "data")
 filename1 = file.path(DataDir, "osapop_20002018.csv")
 filename2= file.path(DataDir,"keskipisteiden_koordinaatit.csv")
-data=read.csv(filename1, sep=";")
-koord=read.csv(filename2, sep=";") 
+data = read.csv(filename1, sep=";")
+koord = read.csv(filename2, sep=";") 
 
 names(data)
 ```
