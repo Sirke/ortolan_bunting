@@ -210,6 +210,44 @@ summary(M4)
 
 Malleja pitäisi visualisoida jotenkin...
 
+### Offset-malli
+
+
+```{r}
+M1=glmmTMB(terri ~ year + offset(log(area)) + (1|fyear)+ (1|id), family=nbinom2, data=dataS)
+
+M2=glmmTMB(terri ~ SSS + agri5 + X*Y + year + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+M3=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec  + offset(log(area))+ (1|fyear)  + (1|id), family=nbinom2, data=dataS)
+
+M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shan + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+M5=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+summary(M1)
+
+AIC(M1,M2,M3,M4,M5)
+```
+#### pinta-ala kovariaattina
+
+```{r}
+M1=glmmTMB(terri ~ year + log(area) + (1|fyear)+ (1|id), family=nbinom2, data=dataS)
+
+M2=glmmTMB(terri ~ SSS + agri5 + X*Y + year + log(area)+ (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+M3=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec  + log(area)+ (1|fyear)  + (1|id), family=nbinom2, data=dataS)
+
+M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shan + year*open + log(area)+ (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+M5=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + log(area) + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+M6=glmmTMB(terri ~ Abuild + Astream + Aroad + Ariver + agri5 + Y  + shan  + offset(log(area)) + (1|fyear) + (1|id), family=nbinom2, data=dataS) 
+  
+summary(M6)
+
+AIC(M1,M2,M3,M4,M5)
+```
+Vaikuttaisi siltä, että ainoita merkitseviä tekijöitä ovat SSS, vuosi, agri5 ja koordinaatit. 
 
 ### 2.2.3 GAM-malli, Tweedie
 
@@ -249,32 +287,27 @@ Muuttujan voi laittaa random-tekijäksi myös määrittämällä se smootherissa
 
 
 ```{r}
-G1=gamm(terriD ~ s(year), random=list(fyear=~1,id=~1), data=dataS, family=Tweedie(p=1.225))
+G1=gam(terriD ~  year+ s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw)
 
-#G2=gamm(terriD ~ s(SSS) + s(agri5) + s(X,Y) + s(year), random=list(fyear=~1,id=~1), data=dataS, family=Tweedie(p=1.225))
+G2=gam(terriD ~  year + s(fyear,bs="re") + s(id,bs="re") + agri5 + SSS + s(Y), data=dataS, family=tw)
 
-#G3=gamm(terriD ~ s(SSS) + s(agri5) + s(X,Y) + s(year) + s(year,temp) + s(year,prec), random=list(fyear=~1,id=~1), data=dataS, family=Tweedie(p=1.225))
+G3=gam(terriD ~ agri5 + SSS + s(Y) + year*temp + year*prec + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw)
 
-#G4=gamm(terriD ~ s(SSS) + s(agri5) + s(X,Y) + s(year) + s(year,shan) + s(year,open), random=list(fyear=~1,id=~1), data=dataS, family=Tweedie(p=1.225))
+G4=gam(terriD ~ agri5 + SSS + s(Y) + year*shan + year*open + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw)
 
-#G5=gamm(terriD ~ s(SSS) + s(agri5) + s(X,Y) + s(year) + s(year,shan) + s(year,open)+ s(year,temp) + s(year,prec), random=list(fyear=~1,id=~1), data=dataS, family=Tweedie(p=1.225))
+G5=gam(terriD ~ agri5 + SSS + s(Y) + year*shan + year*open + year*temp + year*prec + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw)
+
+AIC(G1,G2,G3,G4,G5)
 ```
 
 
 Mallin validointia...
 
-```{r,, eval=FALSE, include=FALSE}
 
-
-op=par(mfrow=c(2,2))
-plot(G2$gam,select=c(1))
-plot(G2$gam,select=c(2))
-plot(G2$gam,select=c(3))
-plot(G2$gam,select=c(4))
-E=resid(G2$lme, type="normalized")
-F=fitted(G2$lme)
-plot(x=F, y=E,xlab="fitted values", ylab="Residuals", cex=0.3)
-par(op)
+```{r, echo=TRUE}
+summary(G3)
+plot(G3)
+G3$gam
 ```
 
 
@@ -287,8 +320,8 @@ Lag-malli. Viime vuoden viljely osapopulaation alueella vaikuttaa seuraavan vuod
 Aineisto jaetaan kolmeen maantieteelliseen alueeseen. Alueiden vertailu.
 
 ```{r, fig.width=14, fig.height=12}
-pairs.panels(dataS[,c("terriD","year","neo","agri5","shan","open","X","Y")])
 
+pairs.panels(dataS[,c("terriD","year","neo","agri5","shan","open","X","Y")])
 ggplot(dataS, aes(x=year,y=terriD))+ geom_point() + geom_smooth()
 ```
 
@@ -298,12 +331,12 @@ agri5 = additiivinen, olisko pieni notkahdus reviireissä jos oikein paljon pelt
 open = ei oikein mitään vaikutusta, korreloi neon kanssa
 Y = reviirejä enemmän etelässä
 
-```{r}
+```{r, eval=FALSE, include=FALSE}
 #neot tiheydellä, gamm
 
 
 #neot offsetilla, glmm
-NO1=lme(terri ~ offset(area) + neo + year + X*Y + (1|fyear) + (1|id), family=nbinom2, data=data)
+#NO1=lme(terri ~ offset(area) + neo + year + X*Y + (1|fyear) + (1|id), family=nbinom2, data=data)
 
 #neot erikseen
 N1=glmmTMB(terri ~ neo * year + X * Y + (1|fyear) + (1|id), family=nbinom2, data=dataS)
