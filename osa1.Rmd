@@ -190,7 +190,13 @@ Kasviryhmien osuudet:
 colMeans(data[,251:260])
 ```
 
-Viljat ja nurmet dominoivat. Öljykasvit ja syysviljat tulevat perässä.
+Viljat ja nurmet dominoivat. Öljykasvit ja syysviljat tulevat perässä.  
+
+Lasken Shannonin diversiteetti-indeksin myös kasviryhmistä. Se saattaa olla järkevämpi mitta kuin kasvikoodeista laskettu indeksi. Sehän saattaa kuvata vain luokittelun kirjoa.
+
+```{r}
+data<-mutate(data, shanG = diversity(data[,251:260],index="shannon"))
+```
 
 
 Jos halutaan vielä tiivistää viljelykasviryhmiä, voidaan lajitella kasvit kahteen ryhmään. Toinen ryhmä (open) käsittää kasvit, jotka ovat keväällä peltosirkkujen pesimäaikaan vasta kylvövaiheessa (tai lyhyellä oraalla?). Toinen ryhmä (cover) käsittää kasvit, jotka ovat keväällä jo pidemmällä kasvussa ja niiden peittävyys on suurempi.
@@ -205,15 +211,15 @@ Huomaa, että open ja cover ovat käytännössä toistensa vastakohdat eli summa
 
 ### 1.1.5 Pienimuotoisten rakenteiden tiheys
 
-Lasketaan rakennusten, teiden, purojen ja jokien tiheys suhteessa osapopulaation pinta-alaan:
+Lasketaan rakennusten, teiden, purojen ja jokien tiheys suhteessa osapopulaation pinta-alaan. Skaalasin muuttujat, koska taloa/km2 ja tiemetriä/km2 ovat hyvin eri skaalalla.
 
 ```{r}
 #muutetaan pinta-ala neliökilometreiksi
 data$area=data$area/1000000
-data<-mutate(data, Abuild = build/area)
-data<-mutate(data, Ariver = river/area)
-data<-mutate(data, Astream = stream/area)
-data<-mutate(data, Aroad = roads/area)
+data<-mutate(data, Abuild = scale(build/area))
+data<-mutate(data, Ariver = scale(river/area))
+data<-mutate(data, Astream = scale(stream/area))
+data<-mutate(data, Aroad = scale(roads/area))
 ```
 
 Jos halutaan vielä tiivistää kaikki rakenteet yhteen muuttujaan ('SSS', small-scale structures):
@@ -228,7 +234,7 @@ data<-dplyr::mutate(data, SSS = Abuild+Aroad+Ariver+Astream)
 Karsitaan yksittäiset viljelykasvisarakkeet aineistosta pois, lisätään osapopulaatioiden koordinaatit ja poistetaan aineistosta kaikki ne vuodet, jolloin osapopulaatiota ei käyty tarkistamassa.
 
 ```{r}
-data<-data[,c(1:2,4:5,7:8,12:13,249:250,261:268)]
+data<-data[,c(1:2,4:5,7:8,12:13,249:250,261:269)]
 
 #koordinaatit
 koord=dplyr::select(koord,id,X,Y)
@@ -240,7 +246,7 @@ names(data)
 data=data %>% drop_na("terri")
 ```
 
-Mukana on siis vielä 20 (osin vaihtoehtoista) muuttujaa.
+Mukana on siis vielä 21 (osin vaihtoehtoista) muuttujaa.
 
 Tallennetaan aineisto:
 

@@ -53,6 +53,8 @@ dotchart(data$prec, main= "precipitation")
 dotchart(data$temp, main= "temperature")
 dotchart(data$open, main= "open (spring sown)")
 dotchart(data$SSS, main= "SSS (small-scale structures)")
+dotchart(data$shan, main= "shannon")
+dotchart(data$shanG, main= "shannon, crop types")
 ```
 
 Kuinka monta reviiriä per osapopulaatio?
@@ -78,10 +80,10 @@ Tarkastellaan muuttujia suhteessa toisiinsa:
 
 ```{r, fig.width=14, fig.height=12}
 #relationships
-pairs.panels(data[,c(3:21)])
+pairs.panels(data[,c(3:22)])
 ```
 
-Reviirien lukumäärällä (terri) ja Shannon-Wienerin indeksillä (shan) sekä lajien lukumäärällä (snum) on suht vahva korrelaatio. Myös maatalousmaiseman osuus (agri5) ja pienrakenteiden tiheys (SSS) nousevat esille. Huomaa, että teiden ja rakennusten yhteys on negatiivinen, kun taas jokien ja purojen on positiivinen.
+Reviirien lukumäärällä (terri) ja Shannon-Wienerin indeksillä (shan ja shanG) sekä lajien lukumäärällä (snum) on suht vahva korrelaatio. Myös maatalousmaiseman osuus (agri5) ja pienrakenteiden tiheys (SSS) nousevat esille. Huomaa, että teiden ja rakennusten suhde reviirien määrään on negatiivinen, kun taas jokien ja purojen on positiivinen.
 
 Keväällä kylvettävien kasvien osuus (open) ja keväällä pidemmällä oraalla olevien kasvien (cover) osuudet ovat toistensa vastakohdat.
 
@@ -94,13 +96,10 @@ Katsotaan reviirien määrän kehitystä kullakin osapopulaatiolla:
 #plottailua
 xyplot(terri~fyear|id, data=data)
 boxplot(terri~fyear, data=data)
-boxplot(terri~id, data=data)
-xyplot(terri~SSS, data=data)
-xyplot(terri~open, data=data)
-xyplot(terri~cover, data=data)
 ```
 
 Trendi näyttäisi yleisesti olevan laskeva.
+
 
 
 ## 2.2 Mallit
@@ -170,19 +169,17 @@ Vuoden keskittäminen? Vuosi 2000 olisi baseline ja siitä eteenpäin vuosi 1,2,
 Skaalataan aineisto ja kokeillaan glmm-malleja. Sovitetaan viisi hypoteesiemme mukaista glmm-mallia ja tulostetaan niiden AICc-taulukko: 
 
 ```{r}
-dataS=data %>%
-   mutate_at(c(2:3,5:7,9:20), funs(c(scale(.))))
+dataS=data %>%mutate_at(c(2:3,5:7,9:14,20:21), funs(c(scale(.))))
 
+M1=glmmTMB(terri ~ year + (1|fyear)+ (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
-M1=glmmTMB(terri ~ year + (1|fyear)+ (1|id), family=nbinom2, data=dataS)
+M2=glmmTMB(terri ~ SSS + agri5 + X*Y + year + (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
-M2=glmmTMB(terri ~ SSS + agri5 + X*Y + year + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+M3=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec  + (1|fyear)  + (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
-M3=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec  + (1|fyear)  + (1|id), family=nbinom2, data=dataS)
+M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
-M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS)
-
-M5=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+M5=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
 output1<-model.sel(M1,M2,M3,M4,M5) 
 
@@ -204,44 +201,100 @@ summary(model.avg(output2, revised.var = TRUE))
 Taulukon tulkinta on hieman epäselvää mulle. Taulukkohan vihjaa ettei interaktiot olisi merkittäviä, mutta mehän halutaan tutkia nimenomaan interaktioita koska ne linkittyvät asioihin, jotka kertovat reviirien lukumäärän vuosittaisesta muutoksesta. Muuttujien tutkiminen ilman interaktiota vuoden kanssa ei ole tässä tapauksessa mielekästä, koska se selittäisi ennemminkin asioita, jotka vaikuttavat reviirien absoluuttiseen lukumäärään, ei muutokseen. Ko,kö?
 
 ```{r}
-summary(M5)
 summary(M4)
 ```
 
-Malleja pitäisi visualisoida jotenkin...
+Mä jatkaisin tästä karsimalla mallista pois ei-merkitsevät interaktiot ja muuttujat. Mulla on tässä prosessissa vähän logiikka hakusessa.
+
+Mallin validointi:
+```{r}
+#malli uudelleen, ML-asetuksella
+M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+op<-par(mfrow=c(3,3),mar=c(5,4,1,2))
+#plot(M4,add.smooth = F,which =1)
+E<-resid(M4)
+hist(E, xlab = "residuals",main = "")
+plot(dataS$SSS,E,xlab = "SSS",ylab="residuals")
+plot(dataS$year,E,xlab = "year",ylab="residuals")
+plot(dataS$shan,E,xlab = "shan",ylab="residuals")
+plot(dataS$agri5,E,xlab = "agri5",ylab="residuals")
+plot(dataS$open,E,xlab = "open",ylab="residuals")
+plot(dataS$X,E,xlab = "X",ylab="residuals")
+plot(dataS$Y,E,xlab = "Y",ylab="residuals")
+par(op)
+```
+Hmm.. Shannon ei näytä hyvältä. Varianssi suurempi isommille arvoille.
+
 
 ### Offset-malli
 
 
 ```{r}
-M1=glmmTMB(terri ~ year + offset(log(area)) + (1|fyear)+ (1|id), family=nbinom2, data=dataS)
+M1=glmmTMB(terri ~ year + offset(log(area)) + (1|fyear)+ (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
-M2=glmmTMB(terri ~ SSS + agri5 + X*Y + year + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS)
+M2=glmmTMB(terri ~ SSS + agri5 + X*Y + year + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS,REML=FALSE)
 
-M3=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec  + offset(log(area))+ (1|fyear)  + (1|id), family=nbinom2, data=dataS)
+M3=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec  + offset(log(area))+ (1|fyear)  + (1|id), family=nbinom2, data=dataS,REML=FALSE)
 
-M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shan + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS)
+M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shan + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS,REML=FALSE)
 
-M5=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS)
+M5=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS,REML=FALSE)
 
 summary(M1)
 
 AIC(M1,M2,M3,M4,M5)
+
+output1<-model.sel(M1,M2,M3,M4,M5) 
+
+# AICc Table
+output1
 ```
+
+```{r}
+output2=model.sel(M4,M2)
+
+#tehdään model averaging
+summary(model.avg(output2, revised.var = TRUE))
+```
+
+M2 olisi näistä vaihtoehdoista yksinkertaisin.
+
+
+Mallin validointi:
+```{r}
+#malli uudelleen, ML-asetuksella
+M2=glmmTMB(terri ~ SSS + agri5 + X*Y + year + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+op<-par(mfrow=c(3,3),mar=c(5,4,1,2))
+#plot(M2,add.smooth = F,which =1)
+E<-resid(M2)
+hist(E, xlab = "residuals",main = "")
+plot(dataS$SSS,E,xlab = "SSS",ylab="residuals")
+plot(dataS$year,E,xlab = "year",ylab="residuals")
+plot(dataS$shan,E,xlab = "shan",ylab="residuals")
+plot(dataS$agri5,E,xlab = "agri5",ylab="residuals")
+plot(dataS$open,E,xlab = "open",ylab="residuals")
+plot(dataS$X,E,xlab = "X",ylab="residuals")
+plot(dataS$Y,E,xlab = "Y",ylab="residuals")
+par(op)
+```
+Hmm...
+
 #### pinta-ala kovariaattina
 
 ```{r}
-M1=glmmTMB(terri ~ year + log(area) + (1|fyear)+ (1|id), family=nbinom2, data=dataS)
+M1=glmmTMB(terri ~ year + log(area) + (1|fyear)+ (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
-M2=glmmTMB(terri ~ SSS + agri5 + X*Y + year + log(area)+ (1|fyear) + (1|id), family=nbinom2, data=dataS)
+M2=glmmTMB(terri ~ SSS + agri5 + X*Y + year + log(area)+ (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
-M3=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec  + log(area)+ (1|fyear)  + (1|id), family=nbinom2, data=dataS)
+M3=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec  + log(area)+ (1|fyear)  + (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
-M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shan + year*open + log(area)+ (1|fyear) + (1|id), family=nbinom2, data=dataS)
+M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shan + year*open + log(area)+ (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
-M5=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + log(area) + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+M5=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + log(area) + (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
-M6=glmmTMB(terri ~ Abuild + Astream + Aroad + Ariver + agri5 + Y  + shan  + offset(log(area)) + (1|fyear) + (1|id), family=nbinom2, data=dataS) 
+M6=glmmTMB(terri ~ Abuild + Astream + Aroad + Ariver + agri5 + Y  + shan  + offset(log(area)) + (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE) 
   
 summary(M6)
 
@@ -287,15 +340,15 @@ Muuttujan voi laittaa random-tekijäksi myös määrittämällä se smootherissa
 
 
 ```{r}
-G1=gam(terriD ~  year+ s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw)
+G1=gam(terriD ~  year + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
 
-G2=gam(terriD ~  year + s(fyear,bs="re") + s(id,bs="re") + agri5 + SSS + s(Y), data=dataS, family=tw)
+G2=gam(terriD ~  year + agri5 + SSS + s(Y,X)+ s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
 
-G3=gam(terriD ~ agri5 + SSS + s(Y) + year*temp + year*prec + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw)
+G3=gam(terriD ~ agri5 + SSS + s(Y,X) + year*temp + year*prec + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
 
-G4=gam(terriD ~ agri5 + SSS + s(Y) + year*shan + year*open + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw)
+G4=gam(terriD ~ agri5 + SSS + s(Y,X) + year*shan + year*open + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
 
-G5=gam(terriD ~ agri5 + SSS + s(Y) + year*shan + year*open + year*temp + year*prec + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw)
+G5=gam(terriD ~ agri5 + SSS + s(Y,X) + year*shan + year*open + year*temp + year*prec + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
 
 AIC(G1,G2,G3,G4,G5)
 ```
