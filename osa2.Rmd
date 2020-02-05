@@ -166,6 +166,8 @@ Vuoden keskittäminen? Vuosi 2000 olisi baseline ja siitä eteenpäin vuosi 1,2,
 
 ### 2.2.2 GLMM-mallit
 
+#### Ei pinta-alaa mukana
+
 Skaalataan aineisto ja kokeillaan glmm-malleja. Sovitetaan viisi hypoteesiemme mukaista glmm-mallia ja tulostetaan niiden AICc-taulukko: 
 
 ```{r}
@@ -224,10 +226,11 @@ plot(dataS$X,E,xlab = "X",ylab="residuals")
 plot(dataS$Y,E,xlab = "Y",ylab="residuals")
 par(op)
 ```
-Hmm.. Shannon ei näytä hyvältä. Varianssi suurempi isommille arvoille.
+
+Hmm.. 
 
 
-### Offset-malli
+#### Pinta-ala offsettina:
 
 
 ```{r}
@@ -241,13 +244,7 @@ M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shan + year*open + offset(log(area))
 
 M5=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS,REML=FALSE)
 
-summary(M1)
-
-AIC(M1,M2,M3,M4,M5)
-
 output1<-model.sel(M1,M2,M3,M4,M5) 
-
-# AICc Table
 output1
 ```
 
@@ -265,9 +262,9 @@ Mallin validointi:
 ```{r}
 #malli uudelleen, ML-asetuksella
 M2=glmmTMB(terri ~ SSS + agri5 + X*Y + year + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS)
+summary(M2)
 
 op<-par(mfrow=c(3,3),mar=c(5,4,1,2))
-#plot(M2,add.smooth = F,which =1)
 E<-resid(M2)
 hist(E, xlab = "residuals",main = "")
 plot(dataS$SSS,E,xlab = "SSS",ylab="residuals")
@@ -279,9 +276,15 @@ plot(dataS$X,E,xlab = "X",ylab="residuals")
 plot(dataS$Y,E,xlab = "Y",ylab="residuals")
 par(op)
 ```
-Hmm...
 
-#### pinta-ala kovariaattina
+Vaikuttaisi siltä, että ainoita merkitseviä tekijöitä ovat vuosi, agri5 ja Y-koordinaatti. 
+
+Residuaalien tulkinta on mulla vähän hakusessa.  
+
+
+#### Pinta-ala kovariaattina:
+
+Samat mallit mutta niin, että pinta-ala onkin oma kovariaattinsa.
 
 ```{r}
 M1=glmmTMB(terri ~ year + log(area) + (1|fyear)+ (1|id), family=nbinom2, data=dataS, REML=FALSE)
@@ -294,13 +297,64 @@ M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shan + year*open + log(area)+ (1|fye
 
 M5=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + log(area) + (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
-M6=glmmTMB(terri ~ Abuild + Astream + Aroad + Ariver + agri5 + Y  + shan  + offset(log(area)) + (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE) 
-  
-summary(M6)
-
-AIC(M1,M2,M3,M4,M5)
+output1<-model.sel(M1,M2,M3,M4,M5) 
+output1
 ```
-Vaikuttaisi siltä, että ainoita merkitseviä tekijöitä ovat SSS, vuosi, agri5 ja koordinaatit. 
+
+
+```{r}
+output2=model.sel(M4,M2)
+
+#tehdään model averaging
+summary(model.avg(output2, revised.var = TRUE))
+```
+
+M2 näyttäisi paremmalta valinnalta.
+
+Mallin validointi:
+```{r}
+#malli uudelleen, ML-asetuksella
+M2=glmmTMB(terri ~ SSS + agri5 + X*Y + year + log(area)+ (1|fyear) + (1|id), family=nbinom2, data=dataS)
+summary(M2)
+
+op<-par(mfrow=c(3,3),mar=c(5,4,1,2))
+E<-resid(M2)
+hist(E, xlab = "residuals",main = "")
+plot(dataS$SSS,E,xlab = "SSS",ylab="residuals")
+plot(dataS$year,E,xlab = "year",ylab="residuals")
+plot(dataS$shan,E,xlab = "shan",ylab="residuals")
+plot(dataS$agri5,E,xlab = "agri5",ylab="residuals")
+plot(dataS$open,E,xlab = "open",ylab="residuals")
+plot(dataS$X,E,xlab = "X",ylab="residuals")
+plot(dataS$Y,E,xlab = "Y",ylab="residuals")
+plot(log(dataS$area),E,xlab = "log(area)",ylab="residuals")
+par(op)
+```
+
+Pinta-alan laittaminen kovariaatiksi ei näytä muuttuvan tuloksia pääpiirteissään. Log(area) on merkitsevä.
+
+
+#### SSS muuttuja pilkottuna
+
+Testaan huvikseen mallia, jossa SSS onkin korvattu osatekijöillään.
+
+```{r}
+M1=glmmTMB(terri ~ year + offset(log(area)) + (1|fyear)+ (1|id), family=nbinom2, data=dataS, REML=FALSE)
+
+M2=glmmTMB(terri ~ Abuild + Astream + Aroad + Ariver + agri5 + X*Y + year + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
+
+M3=glmmTMB(terri ~ Abuild + Astream + Aroad + Ariver + agri5 + X*Y + year*temp + year*prec  + offset(log(area))+ (1|fyear)  + (1|id), family=nbinom2, data=dataS, REML=FALSE)
+
+M4=glmmTMB(terri ~ Abuild + Astream + Aroad + Ariver + agri5 + X*Y + year*shan + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
+
+M5=glmmTMB(terri ~ Abuild + Astream + Aroad + Ariver + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + offset(log(area)) + (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
+
+output1<-model.sel(M1,M2,M3,M4,M5) 
+output1
+```
+
+
+
 
 ### 2.2.3 GAM-malli, Tweedie
 
