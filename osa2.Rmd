@@ -353,9 +353,37 @@ output1<-model.sel(M1,M2,M3,M4,M5)
 output1
 ```
 
+```{r}
+output2=model.sel(M4,M2)
 
+#tehdään model averaging
+summary(model.avg(output2, revised.var = TRUE))
+```
 
+Sama homma. M2 näyttäisi paremmalta valinnalta.
 
+Mallin validointi:
+```{r}
+#malli uudelleen, ML-asetuksella
+M2=glmmTMB(terri ~ Abuild + Astream + Aroad + Ariver + agri5 + X*Y + year + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
+summary(M2)
+
+op<-par(mfrow=c(4,3),mar=c(5,4,1,2))
+E<-resid(M2)
+hist(E, xlab = "residuals",main = "")
+plot(dataS$Abuild,E,xlab = "buildings",ylab="residuals")
+plot(dataS$Astream,E,xlab = "streams",ylab="residuals")
+plot(dataS$Ariver,E,xlab = "rivers",ylab="residuals")
+plot(dataS$Aroad,E,xlab = "roads",ylab="residuals")
+plot(dataS$year,E,xlab = "year",ylab="residuals")
+plot(dataS$shan,E,xlab = "shan",ylab="residuals")
+plot(dataS$agri5,E,xlab = "agri5",ylab="residuals")
+plot(dataS$open,E,xlab = "open",ylab="residuals")
+plot(dataS$X,E,xlab = "X",ylab="residuals")
+plot(dataS$Y,E,xlab = "Y",ylab="residuals")
+plot(log(dataS$area),E,xlab = "log(area)",ylab="residuals")
+par(op)
+```
 ### 2.2.3 GAM-malli, Tweedie
 
 Päätettiin kokeilla mallinnusta niin, että selitettävänä muuttujana onkin reviirien tiheys. Näin osapopulaatioiden vaihteleva pinta-ala saadaan paremmin huomioitua. Osapopulaatiohan oli jo aikaisemminkin random-mmuuttujana, joten pinta-alan aiheuttama vaihtelu muuttujissa oli huomioitu jo jollain tasolla, mutta ei ehkä riittävästi.
