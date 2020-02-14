@@ -21,7 +21,7 @@ Tutkimuskysymykset:
 
 ```{r, include=FALSE}
 getwd()
-paketit<-c("readr","tidyr","plyr","dplyr","vegan","ggplot2","lattice","psych","glmmTMB","lme4","MASS","MuMIn","mgcv")
+paketit<-c("readr","tidyr","plyr","dplyr","vegan","ggplot2","lattice","psych","glmmTMB","lme4","MASS","MuMIn","mgcv","gamm4")
 lapply(paketit,library,character.only=T)
 ```
 
@@ -424,13 +424,13 @@ Muuttujan voi laittaa random-tekijäksi myös määrittämällä se smootherissa
 ```{r}
 G1=gam(terriD ~  year + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
 
-G2=gam(terriD ~  year + agri5 + SSS + s(Y,X)+ s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
+G2=gam(terriD ~  year + agri5 + SSS + s(Y) + s(X) + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
 
-G3=gam(terriD ~ agri5 + SSS + s(Y,X) + year*temp + year*prec + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
+G3=gam(terriD ~ agri5 + SSS + s(Y) + s(X) + year*temp + year*prec + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
 
-G4=gam(terriD ~ agri5 + SSS + s(Y,X) + year*shan + year*open + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
+G4=gam(terriD ~ agri5 + SSS + s(Y) + s(X) + year*shan + year*open + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
 
-G5=gam(terriD ~ agri5 + SSS + s(Y,X) + year*shan + year*open + year*temp + year*prec + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
+G5=gam(terriD ~ agri5 + SSS + s(Y) + s(X) + year*shan + year*open + year*temp + year*prec + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
 
 AIC(G1,G2,G3,G4,G5)
 ```
@@ -445,6 +445,35 @@ plot(G3)
 G3$gam
 ```
 
+
+#### GAMM, NB, offset, (1 + year|id)
+
+Offset argumenttina: "Can be used to supply a model offset for use in fitting. Note that this offset
+will always be completely ignored when predicting, unlike an offset included in
+formula (this used to conform to the behaviour of lm and glm)." Eli jos argumenttina niin predicted arvot eivät huomioi
+
+```{r}
+#joku smootheri mallissa täytyy olla
+#vai pitäisikö perusmallin olla glmm? jos ainut selittävä tekijä on year.
+M1=gamm4(terri ~ year + offset(log(area)), random= ~(1 + year|id), family=nbinom2, data=dataS)
+
+
+M2=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year + offset(log(area)) , random= ~(1 + year|id), family=nbinom2, data=dataS)
+
+
+
+M3=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec  + offset(log(area))+ (1|fyear)  + (1|id), family=nbinom2, data=dataS,REML=FALSE)
+
+M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shan + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS,REML=FALSE)
+
+M5=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS,REML=FALSE)
+
+
+#Abuild + Astream + Aroad + Ariver
+
+output1<-model.sel(M1,M2,M3,M4,M5) 
+output1
+```
 
 ### 2.3 Neo-mallit erikseen
 
@@ -472,6 +501,9 @@ Y = reviirejä enemmän etelässä
 
 #neot offsetilla, glmm
 #NO1=lme(terri ~ offset(area) + neo + year + X*Y + (1|fyear) + (1|id), family=nbinom2, data=data)
+
+#lag-malli
+#NL1=   (terri ~ neo + year + X + Y + (1|fyear) + (1|id), correlation=corAR1(form=~year) family=nbinom2, data=data)
 
 #neot erikseen
 N1=glmmTMB(terri ~ neo * year + X * Y + (1|fyear) + (1|id), family=nbinom2, data=dataS)
