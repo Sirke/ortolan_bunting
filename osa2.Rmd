@@ -418,7 +418,7 @@ Mallien sovitus:  HJÄLP! Vaikea löytää esimerkkejä. Tässä joitain: [esim1
 
 
 
-Muuttujan voi laittaa random-tekijäksi myös määrittämällä se smootherissa: s(...,bs="re")  Lue [tämä](https://stat.ethz.ch/R-manual/R-devel/library/mgcv/html/random.effects.html). 
+Muuttujan voi laittaa random-tekijäksi myös määrittämällä se smootherissa: s(...,bs="re")  Lue [tämä](https://stat.ethz.ch/R-manual/R-devel/library/mgcv/html/random.effects.html) ja [tämä](https://stats.stackexchange.com/questions/197952/two-methods-of-adding-random-effects-to-a-gam-give-very-different-results-why-i). Näin voi käyttää gam-funktiota, jolloin family=tw (eikä Tweedie) eikä Tweedien p-arvoa tarvitse määrittää.
 
 
 ```{r}
@@ -440,39 +440,59 @@ Mallin validointia...
 
 
 ```{r, echo=TRUE}
-summary(G3)
-plot(G3)
-G3$gam
+summary(G2)
+plot(G2)
+G2$gam
 ```
 
 
-#### GAMM, NB, offset, (1 + year|id)
+#### GAMM, NB, offset, (1 + vuosi|lauluryhmä)
 
 Offset argumenttina: "Can be used to supply a model offset for use in fitting. Note that this offset
-will always be completely ignored when predicting, unlike an offset included in
-formula (this used to conform to the behaviour of lm and glm)." Eli jos argumenttina niin predicted arvot eivät huomioi
+will always be completely ignored when predicting, unlike an offset included in formula (this used to conform to the behaviour of lm and glm)." Eli jos argumenttina niin predicted arvot eivät huomioi offsettia. Kumpikohan olis fiksumpi?
 
-```{r}
-#joku smootheri mallissa täytyy olla
+Random-muuttujan rakenne (lmer) cheat sheet [tässä](https://stats.stackexchange.com/questions/13166/rs-lmer-cheat-sheet).
+
+V1 ~ (1+V3|V2) + V3
+
+P1: A global intercept
+
+P2: Random effect intercepts for V2 (i.e. for each level of V2, that level's intercept's deviation from the global intercept)
+
+P3: A single global estimate for the effect (slope) of V3
+
+P4: The effect of V3 within each level of V2 (more specifically, the degree to which the V3 effect within a given level deviates from the global effect of V3)
+
+P5: The correlation between intercept deviations and V3 deviations across levels of V2
+
+Eli intercept voi vaihdella kunkin lauluryhmän mukaan (lähtökohtaisesti joillain osapopulaatioilla on enemmän tai vähemmän reviirejä, joten yleistä mallia vääntäessä tämä vaihtelu pitää sallia ja ottaa huomioon). Random intercept malli kertoo kuinka paljon osapopulaatioiden välillä on "selittämätöntä" vaihtelua, eli vaihtelua siinä, miten paljon reviirien määrä johtuu jostain muuusta kuin fixed osan muuttujista. 
+
+Vuoden vaikutus reviirien määrään (slope) voi myös vaihdella
+
+
+```{r, eval=FALSE}
+#joku smootheri mallissa täytyy olla, vai täytyykö? gamm4 näyttää toimivan ilmankin. mgcv-paketin gamm ei toiminut.
 #vai pitäisikö perusmallin olla glmm? jos ainut selittävä tekijä on year.
-M1=gamm4(terri ~ year + offset(log(area)), random= ~(1 + year|id), family=nbinom2, data=dataS)
+
+M1=gamm4(terri ~ year + offset(log(area)), random= ~(1 + year|id), family=nbinom2, data=dataS) #gamm4-funktiolla random-argumentti on vähän erilainen
+M1=gamm(terri ~ year, offset=log(area), random= list(year=~1,id=~1), family=nbinom2, data=dataS) # tää random on varmaan väärin
+
+M1=gamm(terri ~ year, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS) #oisko tämä syntaksi oikein?
 
 
-M2=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year + offset(log(area)) , random= ~(1 + year|id), family=nbinom2, data=dataS)
+M2=gamm(terri ~ SSS + agri5*year + s(Y) + s(X) + year + offset(log(area)) , random= list(id=~1+year), family=nbinom2, data=dataS)
 
+#M3=gamm(terri ~ SSS + agri5 + X*Y + year*temp + year*prec  + offset(log(area))+ (1|fyear)  + (1|id), family=nbinom2, data=dataS,REML=FALSE)
 
+#M4=gamm(terri ~ SSS + agri5 + X*Y + year*shan + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS,REML=FALSE)
 
-M3=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec  + offset(log(area))+ (1|fyear)  + (1|id), family=nbinom2, data=dataS,REML=FALSE)
-
-M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shan + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS,REML=FALSE)
-
-M5=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS,REML=FALSE)
+#M5=gamm(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS,REML=FALSE)
 
 
 #Abuild + Astream + Aroad + Ariver
 
-output1<-model.sel(M1,M2,M3,M4,M5) 
-output1
+#output1<-model.sel(M1,M2,M3,M4,M5) 
+#output1
 ```
 
 ### 2.3 Neo-mallit erikseen
@@ -495,7 +515,7 @@ agri5 = additiivinen, olisko pieni notkahdus reviireissä jos oikein paljon pelt
 open = ei oikein mitään vaikutusta, korreloi neon kanssa
 Y = reviirejä enemmän etelässä
 
-```{r, eval=FALSE, include=FALSE}
+```{r, eval=FALSE}
 #neot tiheydellä, gamm
 
 
