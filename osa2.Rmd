@@ -446,12 +446,15 @@ G2$gam
 ```
 
 
-#### GAMM, NB, offset, (1 + vuosi|lauluryhmä)
+### 2.2.4 GAMM, NB, offset, (1 + vuosi|lauluryhmä)
 
 Offset argumenttina: "Can be used to supply a model offset for use in fitting. Note that this offset
 will always be completely ignored when predicting, unlike an offset included in formula (this used to conform to the behaviour of lm and glm)." Eli jos argumenttina niin predicted arvot eivät huomioi offsettia. Kumpikohan olis fiksumpi?
 
 Random-muuttujan rakenne (lmer) cheat sheet [tässä](https://stats.stackexchange.com/questions/13166/rs-lmer-cheat-sheet).
+
+
+**Random intercept ja random slope malli**
 
 V1 ~ (1+V3|V2) + V3
 
@@ -467,35 +470,38 @@ P5: The correlation between intercept deviations and V3 deviations across levels
 
 Eli intercept voi vaihdella kunkin lauluryhmän mukaan (lähtökohtaisesti joillain osapopulaatioilla on enemmän tai vähemmän reviirejä, joten yleistä mallia vääntäessä tämä vaihtelu pitää sallia ja ottaa huomioon). Random intercept malli kertoo kuinka paljon osapopulaatioiden välillä on "selittämätöntä" vaihtelua, eli vaihtelua siinä, miten paljon reviirien määrä johtuu jostain muuusta kuin fixed osan muuttujista. 
 
-Vuoden vaikutus reviirien määrään (slope) voi myös vaihdella
+Vuoden vaikutus reviirien määrään (slope) voi myös vaihdella osapopulaatioiden välillä. Jossain lasku on jyrkempi ja jossain loivempi. Slope ja intercept voivat korreloida jossain määrin keskenään eli esimerkiksi osapopulaatioilla, joilla on enemmän reviirejä myös vuosittainen lasku reviirien määrässä on jyrkempi. Tai toisinpäin.
 
+
+Temporaalinen autokorrelaatio? Peräkkäiset vuodet ovat reviirimäärältään samankaltaisempia kuin kauempana toisistaan olevat vuodet? corAR1 jutska.
+
+Miten gamm malleja vertaillaan? AIC ei kai ihan pätevä. gamm4 ja gamm funktioilla eroa, gamm ei anna AIC arvoa. katso Zuurin pingviiniesimerkit.
 
 ```{r, eval=FALSE}
 #joku smootheri mallissa täytyy olla, vai täytyykö? gamm4 näyttää toimivan ilmankin. mgcv-paketin gamm ei toiminut.
 #vai pitäisikö perusmallin olla glmm? jos ainut selittävä tekijä on year.
 
-M1=gamm4(terri ~ year + offset(log(area)), random= ~(1 + year|id), family=nbinom2, data=dataS) #gamm4-funktiolla random-argumentti on vähän erilainen
-M1=gamm(terri ~ year, offset=log(area), random= list(year=~1,id=~1), family=nbinom2, data=dataS) # tää random on varmaan väärin
+M0=gamm4(terri ~ year + offset(log(area)), random= ~(1 + year|id), family=nbinom2, data=dataS) #gamm4-funktiolla random-argumentti on vähän erilainen, offset toimii myös erilailla
 
 M1=gamm(terri ~ year, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS) #oisko tämä syntaksi oikein?
 
 
-M2=gamm(terri ~ SSS + agri5*year + s(Y) + s(X) + year + offset(log(area)) , random= list(id=~1+year), family=nbinom2, data=dataS)
+M2=gamm(terri ~ SSS + agri5*year + s(Y) + s(X) + year , offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
 
-#M3=gamm(terri ~ SSS + agri5 + X*Y + year*temp + year*prec  + offset(log(area))+ (1|fyear)  + (1|id), family=nbinom2, data=dataS,REML=FALSE)
+M3=gamm(terri ~ SSS + agri5*year + s(Y) + s(X)+ year*temp + year*prec , offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
 
-#M4=gamm(terri ~ SSS + agri5 + X*Y + year*shan + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS,REML=FALSE)
+M4=gamm(terri ~ SSS + agri5*year + s(Y) + s(X) + year*shan + year*open, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
 
-#M5=gamm(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS,REML=FALSE)
+M5=gamm(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shan + year*open, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
 
 
 #Abuild + Astream + Aroad + Ariver
 
-#output1<-model.sel(M1,M2,M3,M4,M5) 
+#output1<-model.sel(M1,M2,M3,M4,M5) #tää ei toimi
 #output1
 ```
 
-### 2.3 Neo-mallit erikseen
+## 2.3 Neo-mallit erikseen
 
 Pitäisiköhän nämäkin analyysit tehdä reviiritiheydellä ja GAMM-malleilla?
 
