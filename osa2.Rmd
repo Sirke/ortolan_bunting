@@ -477,22 +477,80 @@ Temporaalinen autokorrelaatio? Peräkkäiset vuodet ovat reviirimäärältään 
 
 Miten gamm malleja vertaillaan? AIC ei kai ihan pätevä. gamm4 ja gamm funktioilla eroa, gamm ei anna AIC arvoa. katso Zuurin pingviiniesimerkit.
 
+gamm4-funktion negbin jakaumaan pitää määritellä theta. Miten se valitaan?
+
 ```{r, eval=FALSE}
 #joku smootheri mallissa täytyy olla, vai täytyykö? gamm4 näyttää toimivan ilmankin. mgcv-paketin gamm ei toiminut.
-#vai pitäisikö perusmallin olla glmm? jos ainut selittävä tekijä on year.
+M1=gamm4(terri ~ year + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=0.2), data=dataS) #gamm4-funktiolla random-argumentti on vähän erilainen, offset toimii myös erilailla
 
-M0=gamm4(terri ~ year + offset(log(area)), random= ~(1 + year|id), family=nbinom2, data=dataS) #gamm4-funktiolla random-argumentti on vähän erilainen, offset toimii myös erilailla
+M2=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=0.2), data=dataS)
 
-M1=gamm(terri ~ year, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS) #oisko tämä syntaksi oikein?
+M3=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X)+ year*temp + year*prec + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=0.2), data=dataS)
+
+M4=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*shan + year*open + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=0.2), data=dataS)
+
+M5=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shan + year*open + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=0.2), data=dataS)
 
 
-M2=gamm(terri ~ SSS + agri5*year + s(Y) + s(X) + year , offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
+AIC(M1$mer, M2$mer, M3$mer, M4$mer, M5$mer)
 
-M3=gamm(terri ~ SSS + agri5*year + s(Y) + s(X)+ year*temp + year*prec , offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
+AIC(M1$mer)
 
-M4=gamm(terri ~ SSS + agri5*year + s(Y) + s(X) + year*shan + year*open, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
+#thetan valinta
+AllThetas <- c(0.1, 0.2, 0.3, 0.4, 0.6, 1, 2, 5, 10)
+AICs <- vector(length = 9)
+i <- 1
+for (MyTheta in AllThetas) {
+       M1 <- gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shan + year*open + offset(log(area)),
+                random =~ (1 + year| id),
+                family = negbin(theta = MyTheta),
+                data = dataS)
+       AICs[i] <- AIC(M1$mer)  #<---
+       i <- i + 1
+}
+# And plot the results
+plot(x = AllThetas, 
+     y = AICs,
+     xlab = "Theta value in NB GAMM",
+     ylab = "AIC",
+     cex.lab = 1.5,
+     type = "l"
+    )
+##########################################################################
+M6 <- gam(NCalls ~ (terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shan + year*open + offset(log(area))+
+                   s(id, bs =  "re"), #miten tähän laitetaan random intercept ja slope??
+          family = nb(),
+          data = Owls)
+summary(M6)
+Theta <- M6$family$getTheta(TRUE)
 
-M5=gamm(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shan + year*open, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
+
+# If you want then you can run M4 again with the optimal theta.
+M4 <- gamm4(NCalls ~ SexParent * FoodTreatment +
+              s(ArrivalTime) +
+              offset(LogBroodSize),
+            random =~ (1 | Nest),
+            family = negbin(theta = Theta),  
+            data = Owls)
+
+# M6 and M4 should now give similar results.
+summary(M6)
+summary(M4$gam)
+summary(M4$mer)
+```
+
+
+```{r, eval=FALSE}
+G1=gamm(terri ~ year, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS) #oisko tämä syntaksi oikein?
+
+
+G2=gamm(terri ~ SSS + agri5*year + s(Y) + s(X) + year , offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
+
+G3=gamm(terri ~ SSS + agri5*year + s(Y) + s(X)+ year*temp + year*prec , offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
+
+G4=gamm(terri ~ SSS + agri5*year + s(Y) + s(X) + year*shan + year*open, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
+
+G5=gamm(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shan + year*open, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
 
 
 #Abuild + Astream + Aroad + Ariver

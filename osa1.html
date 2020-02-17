@@ -185,20 +185,20 @@ summary {
 
 
 <div id="peltosirkkuaineiston-muokkaus" class="section level1">
-<h1>Peltosirkkuaineiston muokkaus</h1>
+<h1>1. Peltosirkkuaineiston muokkaus</h1>
 <div id="uusien-muuttujien-laskeminen" class="section level2">
-<h2>Uusien muuttujien laskeminen</h2>
+<h2>1.1 Uusien muuttujien laskeminen</h2>
 <p>Lasketaan uusia muuttujia, jotka tiivistävät aineistoa. Osa muuttujista on “vaihtoehtoisia”, niiden sisältämä tieto saattaa kuulua kahteen eri muuttujaan.</p>
-<div id="aineisto-sisalle-ja-tarkastelu" class="section level3">
-<h3>Aineisto sisalle ja tarkastelu</h3>
+<div id="aineisto-sisälle-ja-tarkastelu" class="section level3">
+<h3>1.1.1 Aineisto sisälle ja tarkastelu</h3>
 <pre class="r"><code>getwd()</code></pre>
-<pre><code>## [1] &quot;C:/Users/U1701911/OneDrive - University of Helsinki/github_mallinnus/ortolan-bunting&quot;</code></pre>
+<pre><code>## [1] &quot;C:/Users/U1701911/OneDrive - University of Helsinki/github_mallinnus/ortolan_bunting&quot;</code></pre>
 <pre class="r"><code>localDir = &quot;.&quot;
 DataDir = file.path(localDir, &quot;data&quot;)
 filename1 = file.path(DataDir, &quot;osapop_20002018.csv&quot;)
 filename2= file.path(DataDir,&quot;keskipisteiden_koordinaatit.csv&quot;)
-data=read.csv(filename1, sep=&quot;;&quot;)
-koord=read.csv(filename2, sep=&quot;;&quot;) 
+data = read.csv(filename1, sep=&quot;;&quot;)
+koord = read.csv(filename2, sep=&quot;;&quot;) 
 
 names(data)</code></pre>
 <pre><code>##   [1] &quot;id&quot;     &quot;year&quot;   &quot;site&quot;   &quot;agri5&quot;  &quot;area&quot;   &quot;build&quot;  &quot;ndvi&quot;  
@@ -239,8 +239,9 @@ names(data)</code></pre>
 ## [246] &quot;X9812&quot;  &quot;X9820&quot;  &quot;X99999&quot;</code></pre>
 <p>Muuttujien selitykset:</p>
 <p>id = kunkin osapopulaation yksilöivä id-numero (vuosien 2000-2017 välillä tehdyt havaintoryppäät, jotka tulkitaan lauluryhmäksi)</p>
+<p>site = osapopulaation sijainti</p>
 <p>agri5 = osapopulaation keskipisteen ympärille piirretyn 5 km säteen omaavan ympyrän sisälle jäävän maaseutu-maanpeitteen osuus (aineisto: Corine)</p>
-<p>area = kunkin osapopulaation pinta-ala (osapopulaatioksi tulkittujen havaintojen ympärille piirretty 300 metrin bufferi)</p>
+<p>area = kunkin osapopulaation pinta-ala neliömetreissä (osapopulaatioksi tulkittujen havaintojen ympärille piirretty 300 metrin bufferi)</p>
 <p>build = rakennusten lukumäärä osapopulaation alueella</p>
 <p>river = jokien pituus metreinä</p>
 <p>roads = teiden pituus metreinä</p>
@@ -252,6 +253,7 @@ names(data)</code></pre>
 <p>spnum = viljelykasvien lukumäärä (ilman luokkaa 99999, eli ei tietoa)</p>
 <p>X… = viljelykasviluokkien osuudet, Huom! muuttuja X99999 on “ei tietoa viljelykasvista”</p>
 <p>Eri viljelykasveja on mukana yli toistasataa! Suurin osa tietysti nollaa.</p>
+<p>Koordinaatit tulivat eri tiedostosta:</p>
 <pre class="r"><code>head(koord)</code></pre>
 <pre><code>##          X       Y id                             alue
 ## 1 416510.3 6714497  1              Maentsaelae, Purola
@@ -262,19 +264,19 @@ names(data)</code></pre>
 ## 6 419943.0 6719118  6 Pukkila, Maettaehistae, Suokanta</code></pre>
 </div>
 <div id="shannon-wienerin-indeksi" class="section level3">
-<h3>Shannon-Wienerin indeksi</h3>
+<h3>1.1.2 Shannon-Wienerin indeksi</h3>
 <p>Shannon-Wienerin indeksin laskeminen viljylykasvidiversiteetille. Mukaan laskuihin on (kai) otettava muuttuja ‘99999’ eli ‘ei tietoa kasvilajista’ koska muuten osuudet eivät summaudu yhteen.</p>
 <pre class="r"><code>#lisataan shannon-wiener muuttuja
 data&lt;-mutate(data, shan = diversity(data[,15:248],index=&quot;shannon&quot;))</code></pre>
 </div>
 <div id="viljelykasvilajien-lukumäärä" class="section level3">
-<h3>Viljelykasvilajien lukumäärä</h3>
+<h3>1.1.3 Viljelykasvilajien lukumäärä</h3>
 <p>Kasvilajien lukumäärä (‘99999’ mukana). Huomioi, että todellisuudessa tämä muuttuja voi kuvastaa vain EU-tukiryhmien moninaisuutta, lajithan voivat olla samaa nurmea koko ajan mutta eri kategorioissa.</p>
 <pre class="r"><code>#kasvilajien lukumaara
 data&lt;-mutate(data, snum= rowSums(data[,15:248]&gt;0))</code></pre>
 </div>
-<div id="viljelykasvilajien-ryhmittely" class="section level3">
-<h3>Viljelykasvilajien ryhmittely</h3>
+<div id="viljelykasvilajien-osuudet-peltopinta-alasta" class="section level3">
+<h3>1.1.4 Viljelykasvilajien osuudet peltopinta-alasta</h3>
 <p>Alustava jaottelu kymmeneen ryhmään:</p>
 <pre class="r"><code>#listataan ensi mita muuttujia menee mihinkin ryhmaan
 
@@ -290,7 +292,7 @@ viljat&lt;-c(&quot;X5853&quot;,&quot;X5831&quot;,&quot;X1211&quot;,&quot;X2190&q
 
 mausteet&lt;-c(&quot;X4800&quot;,&quot;X4810&quot;,&quot;X5152&quot;,&quot;X5806&quot;,&quot;X5824&quot;,&quot;X5842&quot;,&quot;X5843&quot;,&quot;X5846&quot;,&quot;X5850&quot;,&quot;X5851&quot;)
 
-nurmet&lt;-c(&quot;X6051&quot;,&quot;X2420&quot;,&quot;X2196&quot;,&quot;X2197&quot;,&quot;X9050&quot;,&quot;X9060&quot;,&quot;X9061&quot;,&quot;X9421&quot;,&quot;X94&quot;,&quot;X95&quot;,&quot;X90&quot;,&quot;X63&quot;,&quot;X60&quot;,&quot;X6050&quot;,&quot;X6060&quot;,&quot;X6111&quot;,&quot;X6112&quot;,&quot;X6113&quot;,&quot;X6114&quot;,&quot;X6121&quot;,&quot;X6122&quot;,&quot;X6123&quot;,&quot;X6124&quot;,&quot;X6125&quot;,&quot;X6210&quot;,&quot;X6220&quot;,&quot;X6221&quot;,&quot;X6230&quot;,&quot;X6300&quot;,&quot;X6301&quot;,&quot;X6302&quot;,&quot;X6400&quot;,&quot;X6402&quot;,&quot;X6542&quot;,&quot;X6545&quot;,&quot;X6550&quot;,&quot;X6561&quot;,&quot;X6562&quot;,&quot;X6563&quot;,&quot;X6565&quot;,&quot;X6600&quot;,&quot;X6700&quot;,&quot;X6710&quot;,&quot;X6720&quot;,&quot;X7110&quot;,&quot;X9100&quot;,&quot;X9101&quot;,&quot;X9102&quot;,&quot;X9110&quot;,&quot;X9111&quot;,&quot;X9400&quot;,&quot;X9401&quot;,&quot;X9402&quot;,&quot;X9403&quot;,&quot;X9404&quot;,&quot;X9405&quot;,&quot;X9406&quot;,&quot;X9407&quot;,&quot;X9408&quot;,&quot;X9412&quot;,&quot;X9413&quot;,&quot;X9422&quot;,&quot;X9423&quot;,&quot;X9424&quot;,&quot;X9430&quot;,&quot;X9440&quot;,&quot;X9460&quot;,&quot;X9600&quot;,&quot;X9620&quot;,&quot;X9700&quot;,&quot;X9710&quot;,&quot;X9720&quot;,&quot;X9801&quot;,&quot;X9810&quot;,&quot;X9811&quot;,&quot;X9812&quot;,&quot;X9800&quot;,&quot;X9820&quot;,&quot;X9802&quot;,&quot;X9803&quot;,    &quot;X9804&quot;,&quot;X9805&quot;,    &quot;X9806&quot;,&quot;X9807&quot;,&quot;X9808&quot;)
+nurmet&lt;-c(&quot;X6051&quot;,&quot;X2420&quot;,&quot;X2196&quot;,&quot;X2197&quot;,&quot;X9050&quot;,&quot;X9060&quot;,&quot;X9061&quot;,&quot;X9421&quot;,&quot;X94&quot;,&quot;X95&quot;,&quot;X90&quot;,&quot;X63&quot;,&quot;X60&quot;,&quot;X6050&quot;,&quot;X6060&quot;,&quot;X6111&quot;,&quot;X6112&quot;,&quot;X6113&quot;,&quot;X6114&quot;,&quot;X6121&quot;,&quot;X6122&quot;,&quot;X6123&quot;,&quot;X6124&quot;,&quot;X6125&quot;,&quot;X6210&quot;,&quot;X6220&quot;,&quot;X6221&quot;,&quot;X6230&quot;,&quot;X6300&quot;,&quot;X6301&quot;,&quot;X6302&quot;,&quot;X6400&quot;,&quot;X6402&quot;,&quot;X6542&quot;,&quot;X6545&quot;,&quot;X6546&quot;,&quot;X6550&quot;,&quot;X6561&quot;,&quot;X6562&quot;,&quot;X6563&quot;,&quot;X6565&quot;,&quot;X6600&quot;,&quot;X6700&quot;,&quot;X6710&quot;,&quot;X6720&quot;,&quot;X7110&quot;,&quot;X9100&quot;,&quot;X9101&quot;,&quot;X9102&quot;,&quot;X9110&quot;,&quot;X9111&quot;,&quot;X9400&quot;,&quot;X9401&quot;,&quot;X9402&quot;,&quot;X9403&quot;,&quot;X9404&quot;,&quot;X9405&quot;,&quot;X9406&quot;,&quot;X9407&quot;,&quot;X9408&quot;,&quot;X9412&quot;,&quot;X9413&quot;,&quot;X9422&quot;,&quot;X9423&quot;,&quot;X9424&quot;,&quot;X9430&quot;,&quot;X9440&quot;,&quot;X9460&quot;,&quot;X9600&quot;,&quot;X9620&quot;,&quot;X9700&quot;,&quot;X9710&quot;,&quot;X9720&quot;,&quot;X9801&quot;,&quot;X9810&quot;,&quot;X9811&quot;,&quot;X9812&quot;,&quot;X9800&quot;,&quot;X9820&quot;,&quot;X9802&quot;,&quot;X9803&quot;,    &quot;X9804&quot;,&quot;X9805&quot;,    &quot;X9806&quot;,&quot;X9807&quot;,&quot;X9808&quot;)
 
 syysviljat&lt;-c(&quot;X1110&quot;,&quot;X1141&quot;,&quot;X1230&quot;,&quot;X4120&quot;,&quot;X4220&quot;)
 
@@ -302,18 +304,18 @@ oljy&lt;-c(&quot;X4390&quot;,&quot;X4030&quot;,&quot;X4110&quot;,&quot;X4210&quo
 neot&lt;-c(&quot;X4110&quot;,&quot;X4120&quot;,&quot;X4210&quot;,&quot;X4220&quot;,&quot;X3210&quot;)</code></pre>
 <p>Lasketaan viljelyosuudet uusille ryhmille:</p>
 <pre class="r"><code>#valitaan ketjun perusteella sarakkeet ja lasketaan niistä summa uuden sarakkeen alle
-data %&gt;% select(avomaavih) %&gt;% rowSums(na.rm=TRUE) -&gt; data$vege
-data %&gt;% select(eitietoa) %&gt;% rowSums(na.rm=TRUE) -&gt; data$unkno
-data %&gt;% select(erikois) %&gt;% rowSums(na.rm=TRUE) -&gt; data$spec
-data %&gt;% select(marjat) %&gt;% rowSums(na.rm=TRUE) -&gt; data$fruit
-data %&gt;% select(viljat) %&gt;% rowSums(na.rm=TRUE) -&gt; data$cere
-data %&gt;% select(mausteet) %&gt;% rowSums(na.rm=TRUE) -&gt; data$herb
-data %&gt;% select(nurmet) %&gt;% rowSums(na.rm=TRUE) -&gt; data$gras
-data %&gt;% select(syysviljat) %&gt;% rowSums(na.rm=TRUE) -&gt; data$wint
-data %&gt;% select(valkuais) %&gt;% rowSums(na.rm=TRUE) -&gt; data$prot
-data %&gt;% select(oljy) %&gt;% rowSums(na.rm=TRUE) -&gt; data$oil
+data %&gt;% dplyr::select(avomaavih) %&gt;% rowSums(na.rm=TRUE) -&gt; data$vege
+data %&gt;% dplyr::select(eitietoa) %&gt;% rowSums(na.rm=TRUE) -&gt; data$unkno
+data %&gt;% dplyr::select(erikois) %&gt;% rowSums(na.rm=TRUE) -&gt; data$spec
+data %&gt;% dplyr::select(marjat) %&gt;% rowSums(na.rm=TRUE) -&gt; data$fruit
+data %&gt;% dplyr::select(viljat) %&gt;% rowSums(na.rm=TRUE) -&gt; data$cere
+data %&gt;% dplyr::select(mausteet) %&gt;% rowSums(na.rm=TRUE) -&gt; data$herb
+data %&gt;% dplyr::select(nurmet) %&gt;% rowSums(na.rm=TRUE) -&gt; data$gras
+data %&gt;% dplyr::select(syysviljat) %&gt;% rowSums(na.rm=TRUE) -&gt; data$wint
+data %&gt;% dplyr::select(valkuais) %&gt;% rowSums(na.rm=TRUE) -&gt; data$prot
+data %&gt;% dplyr::select(oljy) %&gt;% rowSums(na.rm=TRUE) -&gt; data$oil
 #neo erikseen
-data %&gt;% select(neot) %&gt;% rowSums(na.rm=TRUE) -&gt; data$neo</code></pre>
+data %&gt;% dplyr::select(neot) %&gt;% rowSums(na.rm=TRUE) -&gt; data$neo</code></pre>
 <p>Tarkastellaan yksittäisten viljelykasvilajien osuuksia aineistossa:</p>
 <pre class="r"><code>#viljelykasvien keskimääräiset osuudet kaikilta vuosilta
 osuudet&lt;-colMeans(data[,15:248])
@@ -321,11 +323,12 @@ sp&lt;-names(data[,15:248])
 sp&lt;- as.data.frame((cbind(sp,osuudet)),row.names = F)
 sp$osuudet&lt;-as.numeric(as.character(sp$osuudet))
 
-#viljelykasvien pinta-alojen jakauma
+#viljelykasvien osuuksien jakauma
 ggplot(sp, aes(x=osuudet))+geom_histogram()</code></pre>
 <pre><code>## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
 <p><img src="data:image/png;base64,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" width="672" /></p>
 <p>Vain muutama laji dominoi viljelyosuuksissa.</p>
+<p>Yleisimmät viljelykasvit:</p>
 <pre class="r"><code>#yleisimmät viljelykasvit
 sp %&gt;%
   top_n(10, osuudet)</code></pre>
@@ -341,56 +344,52 @@ sp %&gt;%
 ## 9  X6124 0.02164654
 ## 10 X9400 0.02338377</code></pre>
 <p>Yleisimmät lajit ovat kevätvehnä (1120), kaura (1400), rehuohra (1310), monivuotiset kuivaheinä-, säilörehu- ja tuorerehunurmet (6121), mallasohra (1320), kevätrypsi (4110) ja syysvehnä (1110).</p>
+<p>Kasviryhmien osuudet:</p>
 <pre class="r"><code>#kasviryhmien keskimääräiset osuudet kaikilta vuosilta
 colMeans(data[,251:260])</code></pre>
 <pre><code>##        vege       unkno        spec       fruit        cere        herb 
 ## 0.028861052 0.010546658 0.003109716 0.004511246 0.543042138 0.011517012 
 ##        gras        wint        prot         oil 
-## 0.260564260 0.060451286 0.017519724 0.055537205</code></pre>
+## 0.260565160 0.060451286 0.017519724 0.055537205</code></pre>
 <p>Viljat ja nurmet dominoivat. Öljykasvit ja syysviljat tulevat perässä.</p>
-<div id="viljelykasviryhmien-tiivistäminen" class="section level4">
-<h4>Viljelykasviryhmien tiivistäminen</h4>
+<p>Lasken Shannonin diversiteetti-indeksin myös kasviryhmistä. Se saattaa olla järkevämpi mitta kuin kasvikoodeista laskettu indeksi. Sehän saattaa kuvata vain luokittelun kirjoa.</p>
+<pre class="r"><code>data&lt;-mutate(data, shanG = diversity(data[,251:260],index=&quot;shannon&quot;))</code></pre>
 <p>Jos halutaan vielä tiivistää viljelykasviryhmiä, voidaan lajitella kasvit kahteen ryhmään. Toinen ryhmä (open) käsittää kasvit, jotka ovat keväällä peltosirkkujen pesimäaikaan vasta kylvövaiheessa (tai lyhyellä oraalla?). Toinen ryhmä (cover) käsittää kasvit, jotka ovat keväällä jo pidemmällä kasvussa ja niiden peittävyys on suurempi.</p>
 <pre class="r"><code>#jos halutaan vielä tiivistää viljelykasveja
-data&lt;-mutate(data, open = cere+vege+oil+prot) #pitäisikö vielä lisätä herb, fruit ja spec (ruokohelpi)? entäpä 9999?
+data&lt;-mutate(data, open = cere+vege+oil+prot) #pitäisikö vielä lisätä herb, fruit ja spec (ruokohelpi)? Näiden ryhmien osuus on pieni. entäpä 9999?
 data&lt;-mutate(data, cover = gras+wint)</code></pre>
-</div>
+<p>Huomaa, että open ja cover ovat käytännössä toistensa vastakohdat eli summautuvat melkeinpä yhteen.</p>
 </div>
 <div id="pienimuotoisten-rakenteiden-tiheys" class="section level3">
-<h3>Pienimuotoisten rakenteiden tiheys</h3>
-<p>Lasketaan rakennusten, teiden, purojen ja jokien tiheys suhteessa osapopulaation pinta-alaan (nyt jokainen erikseen, pitäisikö yhdistää yhdeksi muuttujaksi?)</p>
-<pre class="r"><code>data&lt;-mutate(data, Abuild = build/area)
-data&lt;-mutate(data, Ariver = river/area)
-data&lt;-mutate(data, Astream = stream/area)
-data&lt;-mutate(data, Aroad = roads/area)</code></pre>
-<div id="rakenteiden-tiivistäminen" class="section level4">
-<h4>Rakenteiden tiivistäminen</h4>
-<p>Jos halutaan vielä tiivistää myös kaikki rakenteet yhteen muuttujaan (‘SSS’, small-scale structures)</p>
-<pre class="r"><code>data&lt;-mutate(data, SSS = Abuild+Aroad+Ariver+Astream)</code></pre>
-</div>
+<h3>1.1.5 Pienimuotoisten rakenteiden tiheys</h3>
+<p>Lasketaan rakennusten, teiden, purojen ja jokien tiheys suhteessa osapopulaation pinta-alaan. Skaalasin muuttujat, koska taloa/km2 ja tiemetriä/km2 ovat hyvin eri skaalalla.</p>
+<pre class="r"><code>#muutetaan pinta-ala neliökilometreiksi
+data$area=data$area/1000000
+data&lt;-mutate(data, Abuild = scale(build/area))
+data&lt;-mutate(data, Ariver = scale(river/area))
+data&lt;-mutate(data, Astream = scale(stream/area))
+data&lt;-mutate(data, Aroad = scale(roads/area))</code></pre>
+<p>Jos halutaan vielä tiivistää kaikki rakenteet yhteen muuttujaan (‘SSS’, small-scale structures):</p>
+<pre class="r"><code>data&lt;-dplyr::mutate(data, SSS = Abuild+Aroad+Ariver+Astream)</code></pre>
 </div>
 </div>
 <div id="aineiston-siistiminen" class="section level2">
-<h2>Aineiston siistiminen</h2>
+<h2>1.2 Aineiston siistiminen</h2>
 <p>Karsitaan yksittäiset viljelykasvisarakkeet aineistosta pois, lisätään osapopulaatioiden koordinaatit ja poistetaan aineistosta kaikki ne vuodet, jolloin osapopulaatiota ei käyty tarkistamassa.</p>
-<pre class="r"><code>data&lt;-data[,c(1:4,7:8,12:13,249:268)]
+<pre class="r"><code>data&lt;-data[,c(1:2,4:5,7:8,12:13,249:250,261:269)]
 
 #koordinaatit
-koord=select(koord,id,X,Y)
+koord=dplyr::select(koord,id,X,Y)
 data&lt;-left_join(data,koord,by=&quot;id&quot;)
 
 names(data)</code></pre>
-<pre><code>##  [1] &quot;id&quot;      &quot;year&quot;    &quot;site&quot;    &quot;agri5&quot;   &quot;ndvi&quot;    &quot;prec&quot;    &quot;temp&quot;   
-##  [8] &quot;terri&quot;   &quot;shan&quot;    &quot;snum&quot;    &quot;vege&quot;    &quot;unkno&quot;   &quot;spec&quot;    &quot;fruit&quot;  
-## [15] &quot;cere&quot;    &quot;herb&quot;    &quot;gras&quot;    &quot;wint&quot;    &quot;prot&quot;    &quot;oil&quot;     &quot;neo&quot;    
-## [22] &quot;open&quot;    &quot;cover&quot;   &quot;Abuild&quot;  &quot;Ariver&quot;  &quot;Astream&quot; &quot;Aroad&quot;   &quot;SSS&quot;    
-## [29] &quot;X&quot;       &quot;Y&quot;</code></pre>
-<p>Mukana on siis vielä 30 (osin vaihtoehtoista) muuttujaa.</p>
-<pre class="r"><code>#tarkasta kaikkien luokkien muoto
-data$id&lt;-as.factor(data$id)
-
-#poista aineistosta paikat, joilla ei ole kayty
+<pre><code>##  [1] &quot;id&quot;      &quot;year&quot;    &quot;agri5&quot;   &quot;area&quot;    &quot;ndvi&quot;    &quot;prec&quot;    &quot;temp&quot;   
+##  [8] &quot;terri&quot;   &quot;shan&quot;    &quot;snum&quot;    &quot;neo&quot;     &quot;shanG&quot;   &quot;open&quot;    &quot;cover&quot;  
+## [15] &quot;Abuild&quot;  &quot;Ariver&quot;  &quot;Astream&quot; &quot;Aroad&quot;   &quot;SSS&quot;     &quot;X&quot;       &quot;Y&quot;</code></pre>
+<pre class="r"><code>#poista aineistosta paikat, joilla ei ole kayty
 data=data %&gt;% drop_na(&quot;terri&quot;)</code></pre>
+<p>Mukana on siis vielä 21 (osin vaihtoehtoista) muuttujaa.</p>
+<p>Tallennetaan aineisto:</p>
 <pre class="r"><code>#tallennetaan
 write.csv(data,&quot;OrtolanBunting.csv&quot;,row.names = F)</code></pre>
 </div>
