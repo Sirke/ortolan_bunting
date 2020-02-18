@@ -436,7 +436,7 @@ AIC(G1,G2,G3,G4,G5)
 ```
 
 
-Mallin validointia...
+Mallin validointia... Vaatisi vähän syventymistä aiheeseen..
 
 
 ```{r, echo=TRUE}
@@ -473,11 +473,39 @@ Eli intercept voi vaihdella kunkin lauluryhmän mukaan (lähtökohtaisesti joill
 Vuoden vaikutus reviirien määrään (slope) voi myös vaihdella osapopulaatioiden välillä. Jossain lasku on jyrkempi ja jossain loivempi. Slope ja intercept voivat korreloida jossain määrin keskenään eli esimerkiksi osapopulaatioilla, joilla on enemmän reviirejä myös vuosittainen lasku reviirien määrässä on jyrkempi. Tai toisinpäin.
 
 
-Temporaalinen autokorrelaatio? Peräkkäiset vuodet ovat reviirimäärältään samankaltaisempia kuin kauempana toisistaan olevat vuodet? corAR1 jutska.
+**Temporaalinen autokorrelaatio?** Peräkkäiset vuodet ovat reviirimäärältään samankaltaisempia kuin kauempana toisistaan olevat vuodet? corAR1 jutska.
 
-Miten gamm malleja vertaillaan? AIC ei kai ihan pätevä. gamm4 ja gamm funktioilla eroa, gamm ei anna AIC arvoa. katso Zuurin pingviiniesimerkit.
+**Miten gamm malleja vertaillaan?** AIC ei kai ihan pätevä. gamm4 ja gamm funktioilla on ilmeisesti eroa, gamm ei anna AIC arvoa. katso Zuurin pingviiniesimerkit. Miten vapausasteet lasketaan gammeilla? smoothereissa lineaarinen ja random osa? Eli yksi vai kaksi vapausastetta? Ratkaisee sen miten AIC lasketaan. Asiasta ei kai olla ihan yhtä mieltä. Zuur neuvoo tekemään analyysit Bayeslaisittain, jolloin tätä ongelmaa ei ole.
+
+Zuurin kommentit paketin valinnasta:
+# What package should we use for a GAMM?
+#
+# Function  Package      Uses      Object names
+# gamm4      gamm4       lme4     M1$mer  M1$gam
+# gamm       mgcv        nlme     M1$lme  M1$gam 
+
+# To gamm4 or to mgcv?
+# Gaussian: gamm4 or gamm
+# Crossed random effects: use gamm4
+
+# Model heterogeneity: nlme   but not in lme4. Use gamm
+# Model correlation: Y_s   = Covariate stuff_s + eps_s
+#                    eps_s = rho * eps_s-1 + Pure Noise
+# But....this is all in nlme....(gls and lme)..so only in gamm
+
+
+#Poisson/binomial: 
+# Use gamm4/lme4 ....you can compare AICs
+# But also in gamm....but via PQL ...therefore...cannot compare AICs 
+
+
+# Adding correlation in Gaussian models:
+# T1 <- gamm(Y ~ s(X), correlation = corAR1(form=~ Time))
+# T1 <- gamm(Y ~ s(X), correlation = corSpher(form=~ Lat+Lon))
 
 gamm4-funktion negbin jakaumaan pitää määritellä theta. Miten se valitaan?
+
+Kokeilen ensin ihan vain hatusta 0.2:
 
 ```{r, eval=FALSE}
 #joku smootheri mallissa täytyy olla, vai täytyykö? gamm4 näyttää toimivan ilmankin. mgcv-paketin gamm ei toiminut.
@@ -495,8 +523,13 @@ M5=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*s
 AIC(M1$mer, M2$mer, M3$mer, M4$mer, M5$mer)
 
 AIC(M1$mer)
+````
 
-#thetan valinta
+Zuurin kaksi tapaa arvioida theta:
+
+1) Käytetään gamm4-funktiota ja kokeillaan erilaisia thetoja, katsotaan kuvaajasta, mikä antaa parhaimman AIC arvon
+
+```{r, eval=FALSE}
 AllThetas <- c(0.1, 0.2, 0.3, 0.4, 0.6, 1, 2, 5, 10)
 AICs <- vector(length = 9)
 i <- 1
@@ -516,33 +549,92 @@ plot(x = AllThetas,
      cex.lab = 1.5,
      type = "l"
     )
-##########################################################################
-M6 <- gam(NCalls ~ (terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shan + year*open + offset(log(area))+
-                   s(id, bs =  "re"), #miten tähän laitetaan random intercept ja slope??
-          family = nb(),
-          data = Owls)
+```
+
+Tästä ei tule tulokseksi mitään järkeävää. Tai AIC:t vaan laskee mitä isompi theta on. Onko se järkevä tulos?
+
+2) Käytetään gam-funktiota, jolloin family=nb() arvioi itse sopivan thetan. Tätä varten random-tekijät pitää muuttaa smoothereiksi. En tiedä osasinko tehdä tämän oikein. Eli onko random =~ (1 + year| id) sama kuin s(year,id, bs =  "re") ?
+
+```{r, eval=FALSE}
+#thetan voisi arvioida sovittamalla mallin GAM:lla eli random tekijä smootheriksi. Mutta mikä malli tässä pitäisi olla? Monimutkaisin?
+
+M6 <- gam(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shan + year*open + offset(log(area)) + s(year,id, bs =  "re"), family = nb(),data = dataS)
 summary(M6)
 Theta <- M6$family$getTheta(TRUE)
 
 
 # If you want then you can run M4 again with the optimal theta.
-M4 <- gamm4(NCalls ~ SexParent * FoodTreatment +
-              s(ArrivalTime) +
-              offset(LogBroodSize),
-            random =~ (1 | Nest),
+M4 <- gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shan + year*open + offset(log(area)),
+            random = ~(1 + year|id),
             family = negbin(theta = Theta),  
-            data = Owls)
+            data = dataS)
 
 # M6 and M4 should now give similar results.
 summary(M6)
 summary(M4$gam)
 summary(M4$mer)
+
+gam.vcomp(M6)
 ```
 
+Ei nää mallit nyt ihan täsmää keskenään vaikka pitäisi. Siis jos vertailee muuttujille ja interceptille arvioituja parametreja. Ja random-muuttujien std.dev arvoja. Mutta jos tästä silti ottaisi tuon Thetan onkeensa. Eli 5.354404.
+
+Jos tässä kokeilussa oli väärin käyttää tuota monimutkaisinta mallia niin kokeillaan sitten myös yksinkertaisemmalla mallilla. Saanko saman thetan?
 
 ```{r, eval=FALSE}
-G1=gamm(terri ~ year, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS) #oisko tämä syntaksi oikein?
+#thetan voisi arvioida sovittamalla mallin GAM:lla eli random tekijä smootheriksi. Mutta mikä malli tässä pitäisi olla? Monimutkaisin?
 
+M6 <- gam(terri ~ year + offset(log(area)) + s(year,id, bs =  "re"), family = nb(),data = dataS)
+summary(M6)
+Theta2 <- M6$family$getTheta(TRUE)
+
+
+# If you want then you can run M4 again with the optimal theta.
+M4 <- gamm4(terri ~ year + offset(log(area)),
+            random = ~(1 + year|id),
+            family = negbin(theta = Theta2),  
+            data = dataS)
+
+# M6 and M4 should now give similar results.
+summary(M6)
+summary(M4$gam)
+summary(M4$mer)
+
+gam.vcomp(M6)
+Theta2
+```
+
+Nyt theta on 2.439918 eli eroaa edellisestä arviosta. Zuurin esimerkki ei selitä mitä mallia thetan arvioinnissa pitäisi käyttää. Siinä käytetään mallia, johon on jo aiemmista kiemuroista päädytty, eikä esimerkissä tehdä mallin valintaa tämän jälkeen (etsitään vain sopiva theta ja sovitetaan negbin malli).
+
+Nyt en oikein tiedä minkä thetan valitsisin. Toistaiseksi valitsen tuon ekan vaihtoehdon. 
+
+```{r, eval=FALSE}
+
+G1=gamm4(terri ~ year + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=Theta), data=dataS) 
+
+G2=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=Theta), data=dataS)
+
+G3=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X)+ year*temp + year*prec + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=Theta), data=dataS)
+
+G4=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*shan + year*open + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=Theta), data=dataS)
+
+G5=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shan + year*open + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=Theta), data=dataS)
+
+
+AIC(G1$mer, G2$mer, G3$mer, G4$mer, G5$mer)
+```
+
+Malli G4 ei toimi. Miksi sille kuitenkin tulee AIC arvo? 
+
+G3 aj G5 näyttävät saavan pienimmät AIC arvot. Ero näiden välillä on hyvin pieni.
+
+
+
+
+Samat mallit voisi ajaa myös gamm-funktiolla mutta miten tehdään mallin vertailu jos AIC ei ole käytettävissä?
+
+```{r, eval=FALSE}
+G1=gamm(terri ~ year, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS) 
 
 G2=gamm(terri ~ SSS + agri5*year + s(Y) + s(X) + year , offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
 
@@ -552,12 +644,14 @@ G4=gamm(terri ~ SSS + agri5*year + s(Y) + s(X) + year*shan + year*open, offset=l
 
 G5=gamm(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shan + year*open, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
 
-
-#Abuild + Astream + Aroad + Ariver
-
 #output1<-model.sel(M1,M2,M3,M4,M5) #tää ei toimi
 #output1
 ```
+
+
+
+Lopuksi: Samat mallit voisi tehdä vielä niin, että SSS on eroteltu Abuild + Astream + Aroad + Ariver
+
 
 ## 2.3 Neo-mallit erikseen
 
