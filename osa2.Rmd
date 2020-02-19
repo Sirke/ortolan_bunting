@@ -384,6 +384,8 @@ plot(dataS$Y,E,xlab = "Y",ylab="residuals")
 plot(log(dataS$area),E,xlab = "log(area)",ylab="residuals")
 par(op)
 ```
+
+
 ### 2.2.3 GAM-malli, Tweedie
 
 Päätettiin kokeilla mallinnusta niin, että selitettävänä muuttujana onkin reviirien tiheys. Näin osapopulaatioiden vaihteleva pinta-ala saadaan paremmin huomioitua. Osapopulaatiohan oli jo aikaisemminkin random-mmuuttujana, joten pinta-alan aiheuttama vaihtelu muuttujissa oli huomioitu jo jollain tasolla, mutta ei ehkä riittävästi.
@@ -448,38 +450,34 @@ G2$gam
 
 ### 2.2.4 GAMM, NB, offset, (1 + vuosi|lauluryhmä)
 
-Offset argumenttina: "Can be used to supply a model offset for use in fitting. Note that this offset
+**Offset argumenttina:** "Can be used to supply a model offset for use in fitting. Note that this offset
 will always be completely ignored when predicting, unlike an offset included in formula (this used to conform to the behaviour of lm and glm)." Eli jos argumenttina niin predicted arvot eivät huomioi offsettia. Kumpikohan olis fiksumpi?
-
-Random-muuttujan rakenne (lmer) cheat sheet [tässä](https://stats.stackexchange.com/questions/13166/rs-lmer-cheat-sheet).
 
 
 **Random intercept ja random slope malli**
 
-V1 ~ (1+V3|V2) + V3
+Random-muuttujan rakenne (lmer) cheat sheet [tässä](https://stats.stackexchange.com/questions/13166/rs-lmer-cheat-sheet).
 
-P1: A global intercept
+V1 ~ (1+V3|V2) + V3  
 
-P2: Random effect intercepts for V2 (i.e. for each level of V2, that level's intercept's deviation from the global intercept)
+P1: A global intercept  
 
-P3: A single global estimate for the effect (slope) of V3
+P2: Random effect intercepts for V2 (i.e. for each level of V2, that level's intercept's deviation from the global intercept)  
 
-P4: The effect of V3 within each level of V2 (more specifically, the degree to which the V3 effect within a given level deviates from the global effect of V3)
+P3: A single global estimate for the effect (slope) of V3  
 
-P5: The correlation between intercept deviations and V3 deviations across levels of V2
+P4: The effect of V3 within each level of V2 (more specifically, the degree to which the V3 effect within a given level deviates from the global effect of V3)  
 
-Eli intercept voi vaihdella kunkin lauluryhmän mukaan (lähtökohtaisesti joillain osapopulaatioilla on enemmän tai vähemmän reviirejä, joten yleistä mallia vääntäessä tämä vaihtelu pitää sallia ja ottaa huomioon). Random intercept malli kertoo kuinka paljon osapopulaatioiden välillä on "selittämätöntä" vaihtelua, eli vaihtelua siinä, miten paljon reviirien määrä johtuu jostain muuusta kuin fixed osan muuttujista. 
+P5: The correlation between intercept deviations and V3 deviations across levels of V2  
 
-Vuoden vaikutus reviirien määrään (slope) voi myös vaihdella osapopulaatioiden välillä. Jossain lasku on jyrkempi ja jossain loivempi. Slope ja intercept voivat korreloida jossain määrin keskenään eli esimerkiksi osapopulaatioilla, joilla on enemmän reviirejä myös vuosittainen lasku reviirien määrässä on jyrkempi. Tai toisinpäin.
+Eli intercept voi vaihdella kunkin lauluryhmän mukaan (lähtökohtaisesti joillain osapopulaatioilla on enemmän tai vähemmän reviirejä, joten yleistä mallia vääntäessä tämä vaihtelu pitää sallia ja ottaa huomioon). Random intercept malli kertoo kuinka paljon osapopulaatioiden välillä on "selittämätöntä" vaihtelua, eli vaihtelua siinä, miten paljon reviirien määrä johtuu jostain muuusta kuin fixed osan muuttujista.   
+
+Vuoden vaikutus reviirien määrään (slope) voi myös vaihdella osapopulaatioiden välillä. Jossain lasku on jyrkempi ja jossain loivempi. Slope ja intercept voivat korreloida jossain määrin keskenään eli esimerkiksi osapopulaatioilla, joilla on enemmän reviirejä myös vuosittainen lasku reviirien määrässä on jyrkempi. Tai toisinpäin.  
 
 
-**Temporaalinen autokorrelaatio?** Peräkkäiset vuodet ovat reviirimäärältään samankaltaisempia kuin kauempana toisistaan olevat vuodet? corAR1 jutska.
-
-**Miten gamm malleja vertaillaan?** AIC ei kai ihan pätevä. gamm4 ja gamm funktioilla on ilmeisesti eroa, gamm ei anna AIC arvoa. katso Zuurin pingviiniesimerkit. Miten vapausasteet lasketaan gammeilla? smoothereissa lineaarinen ja random osa? Eli yksi vai kaksi vapausastetta? Ratkaisee sen miten AIC lasketaan. Asiasta ei kai olla ihan yhtä mieltä. Zuur neuvoo tekemään analyysit Bayeslaisittain, jolloin tätä ongelmaa ei ole.
-
-Zuurin kommentit paketin valinnasta:
+Zuurin kommentit paketin valinnasta:  
 # What package should we use for a GAMM?
-#
+
 # Function  Package      Uses      Object names
 # gamm4      gamm4       lme4     M1$mer  M1$gam
 # gamm       mgcv        nlme     M1$lme  M1$gam 
@@ -503,33 +501,23 @@ Zuurin kommentit paketin valinnasta:
 # T1 <- gamm(Y ~ s(X), correlation = corAR1(form=~ Time))
 # T1 <- gamm(Y ~ s(X), correlation = corSpher(form=~ Lat+Lon))
 
-gamm4-funktion negbin jakaumaan pitää määritellä theta. Miten se valitaan?
+**Miten gamm malleja vertaillaan?** AIC ei kai ihan pätevä. gamm4 ja gamm funktioilla on ilmeisesti eroa, gamm ei anna AIC arvoa. katso Zuurin pingviiniesimerkit. Miten vapausasteet lasketaan gammeilla? smoothereissa lineaarinen ja random osa? Eli yksi vai kaksi vapausastetta? Ratkaisee sen miten AIC lasketaan. Asiasta ei kai olla ihan yhtä mieltä. Zuur neuvoo tekemään analyysit Bayeslaisittain, jolloin tätä ongelmaa ei ole.
 
-Kokeilen ensin ihan vain hatusta 0.2:
+mgvc.FAQ ([täällä](https://stat.ethz.ch/R-manual/R-devel/library/mgcv/html/mgcv-FAQ.html)):   
 
-```{r, eval=FALSE}
-#joku smootheri mallissa täytyy olla, vai täytyykö? gamm4 näyttää toimivan ilmankin. mgcv-paketin gamm ei toiminut.
-M1=gamm4(terri ~ year + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=0.2), data=dataS) #gamm4-funktiolla random-argumentti on vähän erilainen, offset toimii myös erilailla
+*When using gamm or gamm4, the reported AIC is different for the gam object and the lme or lmer object. Why is this?* There are several reasons for this. The most important is that the models being used are actually different in the two representations. When treating the GAM as a mixed model, you are implicitly assuming that if you gathered a replicate dataset, the smooths in your model would look completely different to the smooths from the original model, except for having the same degree of smoothness. Technically you would expect the smooths to be drawn afresh from their distribution under the random effects model. When viewing the gam from the usual penalized regression perspective, you would expect smooths to look broadly similar under replication of the data. i.e. you are really using Bayesian model for the smooths, rather than a random effects model (it's just that the frequentist random effects and Bayesian computations happen to coincide for computing the estimates). As a result of the different assumptions about the data generating process, AIC model comparisons can give rather different answers depending on the model adopted. Which you use should depend on which model you really think is appropriate. In addition the computations of the AICs are different. The mixed model AIC uses the marginal liklihood and the corresponding number of model parameters. The gam model uses the penalized likelihood and the effective degrees of freedom.  
 
-M2=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=0.2), data=dataS)
+*How can I compare gamm models?* In the identity link normal errors case, then AIC and hypotheis testing based methods are fine. Otherwise it is best to work out a strategy based on the summary.gam Alternatively, simple random effects can be fitted with gam, which makes comparison straightforward. Package gamm4 is an alternative, which allows AIC type model selection for generalized models.  
 
-M3=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X)+ year*temp + year*prec + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=0.2), data=dataS)
+**Temporaalinen autokorrelaatio?** Peräkkäiset vuodet ovat reviirimäärältään samankaltaisempia kuin kauempana toisistaan olevat vuodet? corAR1 jutska.
 
-M4=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*shan + year*open + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=0.2), data=dataS)
-
-M5=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shan + year*open + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=0.2), data=dataS)
-
-
-AIC(M1$mer, M2$mer, M3$mer, M4$mer, M5$mer)
-
-AIC(M1$mer)
-````
+**Negative binomial jakauman Theta?** gamm4-funktion negbin jakaumaan pitää määritellä theta. Miten se valitaan? 
 
 Zuurin kaksi tapaa arvioida theta:
 
 1) Käytetään gamm4-funktiota ja kokeillaan erilaisia thetoja, katsotaan kuvaajasta, mikä antaa parhaimman AIC arvon
 
-```{r, eval=FALSE}
+```{r}
 AllThetas <- c(0.1, 0.2, 0.3, 0.4, 0.6, 1, 2, 5, 10)
 AICs <- vector(length = 9)
 i <- 1
@@ -555,7 +543,7 @@ Tästä ei tule tulokseksi mitään järkeävää. Tai AIC:t vaan laskee mitä i
 
 2) Käytetään gam-funktiota, jolloin family=nb() arvioi itse sopivan thetan. Tätä varten random-tekijät pitää muuttaa smoothereiksi. En tiedä osasinko tehdä tämän oikein. Eli onko random =~ (1 + year| id) sama kuin s(year,id, bs =  "re") ?
 
-```{r, eval=FALSE}
+```{r}
 #thetan voisi arvioida sovittamalla mallin GAM:lla eli random tekijä smootheriksi. Mutta mikä malli tässä pitäisi olla? Monimutkaisin?
 
 M6 <- gam(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shan + year*open + offset(log(area)) + s(year,id, bs =  "re"), family = nb(),data = dataS)
@@ -581,7 +569,7 @@ Ei nää mallit nyt ihan täsmää keskenään vaikka pitäisi. Siis jos vertail
 
 Jos tässä kokeilussa oli väärin käyttää tuota monimutkaisinta mallia niin kokeillaan sitten myös yksinkertaisemmalla mallilla. Saanko saman thetan?
 
-```{r, eval=FALSE}
+```{r}
 #thetan voisi arvioida sovittamalla mallin GAM:lla eli random tekijä smootheriksi. Mutta mikä malli tässä pitäisi olla? Monimutkaisin?
 
 M6 <- gam(terri ~ year + offset(log(area)) + s(year,id, bs =  "re"), family = nb(),data = dataS)
@@ -604,11 +592,11 @@ gam.vcomp(M6)
 Theta2
 ```
 
-Nyt theta on 2.439918 eli eroaa edellisestä arviosta. Zuurin esimerkki ei selitä mitä mallia thetan arvioinnissa pitäisi käyttää. Siinä käytetään mallia, johon on jo aiemmista kiemuroista päädytty, eikä esimerkissä tehdä mallin valintaa tämän jälkeen (etsitään vain sopiva theta ja sovitetaan negbin malli).
+Nyt theta on 2.439918 eli eroaa edellisestä arviosta. Zuurin esimerkki ei selitä, mitä mallia thetan arvioinnissa pitäisi käyttää. Siinä käytetään mallia, johon on jo aiemmista kiemuroista päädytty, eikä esimerkissä tehdä mallin valintaa tämän jälkeen (etsitään vain sopiva theta ja sovitetaan negbin malli).
 
 Nyt en oikein tiedä minkä thetan valitsisin. Toistaiseksi valitsen tuon ekan vaihtoehdon. 
 
-```{r, eval=FALSE}
+```{r}
 
 G1=gamm4(terri ~ year + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=Theta), data=dataS) 
 
@@ -619,16 +607,60 @@ G3=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X)+ year*temp + year*prec + offset(
 G4=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*shan + year*open + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=Theta), data=dataS)
 
 G5=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shan + year*open + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=Theta), data=dataS)
-
-
-AIC(G1$mer, G2$mer, G3$mer, G4$mer, G5$mer)
 ```
 
-Malli G4 ei toimi. Miksi sille kuitenkin tulee AIC arvo? 
+Malli G4 ilmoittaa "failure to converge in 10000 evaluations" mutta tämä ei kuitenkaan ole mikään error-viesti ja malli näyttää toimineen. Jännä juttu. Mulla on R:ssä asennettuna joku paketti, joka kertoo laskelmien edistymisestä. Teksti taitaa tulla sen takia. Selvitetään..
 
-G3 aj G5 näyttävät saavan pienimmät AIC arvot. Ero näiden välillä on hyvin pieni.
+```{r}
+AIC(G1$mer, G2$mer, G3$mer, G4$mer, G5$mer)
+anova(G1$mer, G2$mer, G3$mer, G4$mer, G5$mer)
+summary(G3$gam)
+summary(G3$mer)
+plot(G3$gam)
+```
+
+G3 ja G5 näyttävät saavan pienimmät AIC arvot. Ero näiden välillä on hyvin pieni. 
+Mutta joissain esimerkeissä vertaillaan BIC arvoja, näissä mitattuna G2 olisi paras.
+
+Entäs kun ero on noin mitättömän pieni? Valitaanko yksinkertaisempi malli? G3?
+
+Mallin validointi:
+
+```{r}
+#Check dispersion parameter
+p <- sum(G3$gam$edf) + 1 + 1 #theta and sigma id,  MITÄ TÄHÄN PITÄISI KIRJATA, tuleeko crossed random effectseistä vielä yksi degree of freedom lisää? vielä yksi +1?
+N <- nrow(dataS)
+E4 <- resid(G3$mer, type = "pearson")
+Overdisp <- sum(E4^2) / (N - p)
+Overdisp  
+
+#Plot residuals vs ...
+plot(x = dataS$X,
+     y = E4,
+     xlab = "X",
+     ylab = "Pearson residuals")
+abline(h = 0, lty = 2)     
+
+#Plot residuals vs ...
+plot(x = dataS$Y,
+     y = E4,
+     xlab = "Y",
+     ylab = "Pearson residuals")
+abline(h = 0, lty = 2)
+
+#Is there a non-linear pattern in here?
+T1 <- gam(E4 ~ s(Y), data = dataS)
+summary(T1)
+plot(T1)
+abline(h = 0, lty = 2)
+
+```
+
+Tää validointi on Zuurin esimerkistä GAMM NB esimerkistä. En vielä osaa sen kummemmin tulkita näitä. Enkä tiedä mitä kaikkea pitäisi plotata.
 
 
+
+Lopuksi: Samat mallit voisi tehdä vielä niin, että SSS on eroteltu Abuild + Astream + Aroad + Ariver
 
 
 Samat mallit voisi ajaa myös gamm-funktiolla mutta miten tehdään mallin vertailu jos AIC ei ole käytettävissä?
@@ -647,11 +679,6 @@ G5=gamm(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*sh
 #output1<-model.sel(M1,M2,M3,M4,M5) #tää ei toimi
 #output1
 ```
-
-
-
-Lopuksi: Samat mallit voisi tehdä vielä niin, että SSS on eroteltu Abuild + Astream + Aroad + Ariver
-
 
 ## 2.3 Neo-mallit erikseen
 
