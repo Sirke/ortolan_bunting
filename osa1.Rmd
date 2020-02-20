@@ -203,8 +203,8 @@ Jos halutaan vielä tiivistää viljelykasviryhmiä, voidaan lajitella kasvit ka
 
 ```{r}
 #jos halutaan vielä tiivistää viljelykasveja
-data<-mutate(data, open = cere+vege+oil+prot) #pitäisikö vielä lisätä herb, fruit ja spec (ruokohelpi)? Näiden ryhmien osuus on pieni. entäpä 9999?
-data<-mutate(data, cover = gras+wint)
+data<-mutate(data, open = cere+vege+oil+prot) # entäpä 9999?
+data<-mutate(data, cover = gras+wint) #pitäisikö vielä lisätä herb, fruit ja spec (ruokohelpi)? Näiden ryhmien osuus on pieni. Itseasiassa näillä ei ole väliä koska käytän malleissa vain open muuttujaa.
 ```
 
 Huomaa, että open ja cover ovat käytännössä toistensa vastakohdat eli summautuvat melkeinpä yhteen.

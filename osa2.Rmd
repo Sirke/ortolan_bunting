@@ -338,7 +338,7 @@ Pinta-alan laittaminen kovariaatiksi ei näytä muuttuvan tuloksia pääpiirteis
 
 Testaan huvikseen mallia, jossa SSS onkin korvattu osatekijöillään.
 
-```{r}
+```{r warning=TRUE}
 M1=glmmTMB(terri ~ year + offset(log(area)) + (1|fyear)+ (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
 M2=glmmTMB(terri ~ Abuild + Astream + Aroad + Ariver + agri5 + X*Y + year + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
@@ -437,6 +437,7 @@ G5=gam(terriD ~ agri5 + SSS + s(Y) + s(X) + year*shan + year*open + year*temp + 
 AIC(G1,G2,G3,G4,G5)
 ```
 
+G2 malli saa pienimmän AIC arvon. 
 
 Mallin validointia... Vaatisi vähän syventymistä aiheeseen..
 
@@ -447,8 +448,58 @@ plot(G2)
 G2$gam
 ```
 
+GAM-mallien validointi ja visualisointi on vielä vähän hakusessa. Residuaalit pitäisi tässäkin tarkistaa.
 
-### 2.2.4 GAMM, NB, offset, (1 + vuosi|lauluryhmä)
+
+#### 2.2.4 GAM, NB, offset, (0 + vuosi|lauluryhmä)
+
+Perus-GAM, jossa random-rakenne on smootherina. 
+
+Mutta [tässä](http://martijnwieling.nl/files/GAM-tutorial-Wieling.pdf) tutoriaalissa sanotaan ettei random slopen ja random interceptin välille ole mahdollista ohjelmoida gam-funktiolla korrelaatiota:  
+
+*4.7.2 Including a random slope* In similar fashion, we may include a by-speaker linear random slope (which would
+correspond to tilting the non-linear pattern) for the two-word-contrast (Word) as follows:  
+
+m4 <- bam(Pos ~ Word + s(Time, by=Word) + s(Speaker,bs="re") + s(Speaker,Word,bs="re"), data=dat)  
+ 
+In the lmer specification this random slope would be represented by **(0+Word|Speaker)**. Unfortunately, in the GAM specification, it is not possible to model a
+correlation between random intercepts and random slopes (i.e. an lmer specification such as (1+Word|Speaker) is not possible). At present this is a drawback compared to linear
+mixed-effects regression, at least when linear random slopes are used.
+
+Eli alla käyttämäni random-rakenne ei ole oikein, tai ainakaan just se mitä haetaan. Pitäisi kai käyttää GAMM-funktiota sit kuitenkin. 
+
+```{r}
+M0 <- gam(terri ~ year + s(year,id, bs ="re"), offset=log(area), family = nb(), data= dataS, method = "ML")
+
+M1 <- gam(terri ~ SSS + agri5*year + s(Y, bs ="cs") + s(X, bs ="cs") + s(year,id, bs="re"), offset=log(area), family = nb(),data= dataS, method = "ML")
+
+M2 <- gam(terri ~ SSS + agri5*year + s(Y, bs ="cs") + s(X, bs ="cs") + year*temp + year*prec + s(year,id, bs="re"), offset=log(area), family = nb(), data= dataS, method = "ML")
+
+M3 <- gam(terri ~ SSS + agri5*year + s(Y, bs ="cs") + s(X, bs ="cs") + year*shanG + year*open + s(year,id, bs="re"), offset=log(area), family = nb(), data= dataS, method = "ML")
+
+M4 <- gam(terri ~ SSS + agri5*year + s(Y, bs ="cs") + s(X, bs ="cs") + year*temp + year*prec + year*shanG + year*open + s(year,id, bs="re"), offset=log(area), family = nb(), data= dataS, method = "ML")
+
+AIC(M0,M1,M2,M3,M4)
+```
+
+M2 ja M4 ovat parhaimpia näistä. M2 on yksinkertaisempi.
+
+```{r}
+summary(M2)
+```
+
+```{r}
+plot(M2)
+```
+
+```{r}
+gam.check(M2)
+```
+
+Pitäisikö plotata vielä tarkemmin kukin muuttuja vs. residuaalit?
+
+
+### 2.2.5 GAMM, NB, offset, (1 + vuosi|lauluryhmä)
 
 **Offset argumenttina:** "Can be used to supply a model offset for use in fitting. Note that this offset
 will always be completely ignored when predicting, unlike an offset included in formula (this used to conform to the behaviour of lm and glm)." Eli jos argumenttina niin predicted arvot eivät huomioi offsettia. Kumpikohan olis fiksumpi?
@@ -475,37 +526,36 @@ Eli intercept voi vaihdella kunkin lauluryhmän mukaan (lähtökohtaisesti joill
 Vuoden vaikutus reviirien määrään (slope) voi myös vaihdella osapopulaatioiden välillä. Jossain lasku on jyrkempi ja jossain loivempi. Slope ja intercept voivat korreloida jossain määrin keskenään eli esimerkiksi osapopulaatioilla, joilla on enemmän reviirejä myös vuosittainen lasku reviirien määrässä on jyrkempi. Tai toisinpäin.  
 
 
-Zuurin kommentit paketin valinnasta:  
-# What package should we use for a GAMM?
+Zuurin kommentit paketin valinnasta:    
+ What package should we use for a GAMM?  
 
-# Function  Package      Uses      Object names
-# gamm4      gamm4       lme4     M1$mer  M1$gam
-# gamm       mgcv        nlme     M1$lme  M1$gam 
+Function  Package      Uses      Object names  
+ gamm4      gamm4       lme4     M1$mer  M1$gam  
+ gamm       mgcv        nlme     M1$lme  M1$gam   
 
-# To gamm4 or to mgcv?
-# Gaussian: gamm4 or gamm
-# Crossed random effects: use gamm4
+ To gamm4 or to mgcv?  
+ Gaussian: gamm4 or gamm  
+ Crossed random effects: use gamm4  
 
-# Model heterogeneity: nlme   but not in lme4. Use gamm
-# Model correlation: Y_s   = Covariate stuff_s + eps_s
-#                    eps_s = rho * eps_s-1 + Pure Noise
-# But....this is all in nlme....(gls and lme)..so only in gamm
+ Model heterogeneity: nlme   but not in lme4. Use gamm  
+ Model correlation: Y_s   = Covariate stuff_s + eps_s  
+                    eps_s = rho * eps_s-1 + Pure Noise  
+ But....this is all in nlme....(gls and lme)..so only in gamm  
+
+Poisson/binomial:   
+ Use gamm4/lme4 ....you can compare AICs  
+ But also in gamm....but via PQL ...therefore...cannot compare AICs   
 
 
-#Poisson/binomial: 
-# Use gamm4/lme4 ....you can compare AICs
-# But also in gamm....but via PQL ...therefore...cannot compare AICs 
+ Adding correlation in Gaussian models:  
+ T1 <- gamm(Y ~ s(X), correlation = corAR1(form=~ Time))  
+ T1 <- gamm(Y ~ s(X), correlation = corSpher(form=~ Lat+Lon))  
 
-
-# Adding correlation in Gaussian models:
-# T1 <- gamm(Y ~ s(X), correlation = corAR1(form=~ Time))
-# T1 <- gamm(Y ~ s(X), correlation = corSpher(form=~ Lat+Lon))
-
-**Miten gamm malleja vertaillaan?** AIC ei kai ihan pätevä. gamm4 ja gamm funktioilla on ilmeisesti eroa, gamm ei anna AIC arvoa. katso Zuurin pingviiniesimerkit. Miten vapausasteet lasketaan gammeilla? smoothereissa lineaarinen ja random osa? Eli yksi vai kaksi vapausastetta? Ratkaisee sen miten AIC lasketaan. Asiasta ei kai olla ihan yhtä mieltä. Zuur neuvoo tekemään analyysit Bayeslaisittain, jolloin tätä ongelmaa ei ole.
+**Miten gamm malleja vertaillaan?** AIC ei kai ihan pätevä. gamm4 ja gamm funktioilla on ilmeisesti eroa. Katso Zuurin pingviiniesimerkit. Miten vapausasteet lasketaan gammeilla? smoothereissa on lineaarinen ja random osa? Eli yksi vai kaksi vapausastetta? Ratkaisee sen miten AIC lasketaan. Asiasta ei kai olla ihan yhtä mieltä. Zuur neuvoo tekemään analyysit Bayeslaisittain, jolloin tätä ongelmaa ei ole. Vai onko tämä ongelma vasta sitten kun vertailtavien mallien AIC arvot ovat hyvin lähekkäin. Jos niiden välillä on selvä ero -> AIC arvoihin voi luottaa??
 
 mgvc.FAQ ([täällä](https://stat.ethz.ch/R-manual/R-devel/library/mgcv/html/mgcv-FAQ.html)):   
 
-*When using gamm or gamm4, the reported AIC is different for the gam object and the lme or lmer object. Why is this?* There are several reasons for this. The most important is that the models being used are actually different in the two representations. When treating the GAM as a mixed model, you are implicitly assuming that if you gathered a replicate dataset, the smooths in your model would look completely different to the smooths from the original model, except for having the same degree of smoothness. Technically you would expect the smooths to be drawn afresh from their distribution under the random effects model. When viewing the gam from the usual penalized regression perspective, you would expect smooths to look broadly similar under replication of the data. i.e. you are really using Bayesian model for the smooths, rather than a random effects model (it's just that the frequentist random effects and Bayesian computations happen to coincide for computing the estimates). As a result of the different assumptions about the data generating process, AIC model comparisons can give rather different answers depending on the model adopted. Which you use should depend on which model you really think is appropriate. In addition the computations of the AICs are different. The mixed model AIC uses the marginal liklihood and the corresponding number of model parameters. The gam model uses the penalized likelihood and the effective degrees of freedom.  
+*When using gamm or gamm4, the reported AIC is different for the gam object and the lme or lmer object. Why is this?* There are several reasons for this. The most important is that the models being used are actually different in the two representations. When treating the GAM as a mixed model, you are implicitly assuming that if you gathered a replicate dataset, the smooths in your model would look completely different to the smooths from the original model, except for having the same degree of smoothness. Technically you would expect the smooths to be drawn afresh from their distribution under the random effects model. When viewing the gam from the usual penalized regression perspective, you would expect smooths to look broadly similar under replication of the data. i.e. you are really using Bayesian model for the smooths, rather than a random effects model (it's just that the frequentist random effects and Bayesian computations happen to coincide for computing the estimates). As a result of the different assumptions about the data generating process, AIC model comparisons can give rather different answers depending on the model adopted. Which you use should depend on which model you really think is appropriate. In addition the computations of the AICs are different. The mixed model AIC uses the marginal likelihood and the corresponding number of model parameters. The gam model uses the penalized likelihood and the effective degrees of freedom.  
 
 *How can I compare gamm models?* In the identity link normal errors case, then AIC and hypotheis testing based methods are fine. Otherwise it is best to work out a strategy based on the summary.gam Alternatively, simple random effects can be fitted with gam, which makes comparison straightforward. Package gamm4 is an alternative, which allows AIC type model selection for generalized models.  
 
@@ -522,7 +572,7 @@ AllThetas <- c(0.1, 0.2, 0.3, 0.4, 0.6, 1, 2, 5, 10)
 AICs <- vector(length = 9)
 i <- 1
 for (MyTheta in AllThetas) {
-       M1 <- gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shan + year*open + offset(log(area)),
+       M1 <- gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shanG + year*open + offset(log(area)),
                 random =~ (1 + year| id),
                 family = negbin(theta = MyTheta),
                 data = dataS)
@@ -546,13 +596,13 @@ Tästä ei tule tulokseksi mitään järkeävää. Tai AIC:t vaan laskee mitä i
 ```{r}
 #thetan voisi arvioida sovittamalla mallin GAM:lla eli random tekijä smootheriksi. Mutta mikä malli tässä pitäisi olla? Monimutkaisin?
 
-M6 <- gam(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shan + year*open + offset(log(area)) + s(year,id, bs =  "re"), family = nb(),data = dataS)
+M6 <- gam(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shanG + year*open + offset(log(area)) + s(year,id, bs =  "re"), family = nb(),data = dataS)
 summary(M6)
 Theta <- M6$family$getTheta(TRUE)
 
 
 # If you want then you can run M4 again with the optimal theta.
-M4 <- gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shan + year*open + offset(log(area)),
+M4 <- gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shanG + year*open + offset(log(area)),
             random = ~(1 + year|id),
             family = negbin(theta = Theta),  
             data = dataS)
@@ -570,8 +620,6 @@ Ei nää mallit nyt ihan täsmää keskenään vaikka pitäisi. Siis jos vertail
 Jos tässä kokeilussa oli väärin käyttää tuota monimutkaisinta mallia niin kokeillaan sitten myös yksinkertaisemmalla mallilla. Saanko saman thetan?
 
 ```{r}
-#thetan voisi arvioida sovittamalla mallin GAM:lla eli random tekijä smootheriksi. Mutta mikä malli tässä pitäisi olla? Monimutkaisin?
-
 M6 <- gam(terri ~ year + offset(log(area)) + s(year,id, bs =  "re"), family = nb(),data = dataS)
 summary(M6)
 Theta2 <- M6$family$getTheta(TRUE)
@@ -597,6 +645,7 @@ Nyt theta on 2.439918 eli eroaa edellisestä arviosta. Zuurin esimerkki ei selit
 Nyt en oikein tiedä minkä thetan valitsisin. Toistaiseksi valitsen tuon ekan vaihtoehdon. 
 
 ```{r}
+#varsinaiset mallit, joissa theta arvioitu gam-mallin avulla
 
 G1=gamm4(terri ~ year + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=Theta), data=dataS) 
 
@@ -614,9 +663,6 @@ Malli G4 ilmoittaa "failure to converge in 10000 evaluations" mutta tämä ei ku
 ```{r}
 AIC(G1$mer, G2$mer, G3$mer, G4$mer, G5$mer)
 anova(G1$mer, G2$mer, G3$mer, G4$mer, G5$mer)
-summary(G3$gam)
-summary(G3$mer)
-plot(G3$gam)
 ```
 
 G3 ja G5 näyttävät saavan pienimmät AIC arvot. Ero näiden välillä on hyvin pieni. 
@@ -624,7 +670,17 @@ Mutta joissain esimerkeissä vertaillaan BIC arvoja, näissä mitattuna G2 olisi
 
 Entäs kun ero on noin mitättömän pieni? Valitaanko yksinkertaisempi malli? G3?
 
-Mallin validointi:
+```{r}
+summary(G3$gam)
+summary(G3$mer)
+plot(G3$gam)
+```
+
+Hmm.. Mitähän näistä nyt sanoisi?
+
+
+**Mallin validointia seuraavaksi.**  
+Ilmeisesti NB voi myös olla overdispersed.
 
 ```{r}
 #Check dispersion parameter
@@ -659,30 +715,38 @@ abline(h = 0, lty = 2)
 Tää validointi on Zuurin esimerkistä GAMM NB esimerkistä. En vielä osaa sen kummemmin tulkita näitä. Enkä tiedä mitä kaikkea pitäisi plotata.
 
 
+Samat mallit voisi tehdä vielä niin, että SSS on eroteltu Abuild + Astream + Aroad + Ariver. Kokeilen tätä sitten myöhemmin kun päädyn johonkin ratkaisuun mallin rakenteesta ja funktiosta.
 
-Lopuksi: Samat mallit voisi tehdä vielä niin, että SSS on eroteltu Abuild + Astream + Aroad + Ariver
 
+#### 2.2.6 gamm-funktio
 
-Samat mallit voisi ajaa myös gamm-funktiolla mutta miten tehdään mallin vertailu jos AIC ei ole käytettävissä?
+Samat mallit voisi ajaa myös gamm-funktiolla mutta miten tehdään mallin vertailu jos AIC ei ole käytettävissä? Paitsi, että Zuurin kirjassa AIC vertailua tehdään kyllä ihan mennen tullen. 
 
-```{r, eval=FALSE}
+```{r}
 G1=gamm(terri ~ year, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS) 
 
-G2=gamm(terri ~ SSS + agri5*year + s(Y) + s(X) + year , offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
+G2=gamm(terri ~ SSS + agri5*year + s(Y,bs="cr") + s(X,bs="cr") + year , offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
 
-G3=gamm(terri ~ SSS + agri5*year + s(Y) + s(X)+ year*temp + year*prec , offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
+G3=gamm(terri ~ SSS + agri5*year + s(Y,bs="cr") + s(X,bs="cr")+ year*temp + year*prec , offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
 
-G4=gamm(terri ~ SSS + agri5*year + s(Y) + s(X) + year*shan + year*open, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
+G4=gamm(terri ~ SSS + agri5*year + s(Y,bs="cr") + s(X,bs="cr") + year*shan + year*open, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
 
-G5=gamm(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shan + year*open, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
-
-#output1<-model.sel(M1,M2,M3,M4,M5) #tää ei toimi
-#output1
+G5=gamm(terri ~ SSS + agri5*year + s(Y,bs="cr") + s(X,bs="cr") + year*temp + year*prec + year*shan + year*open, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
 ```
+
+
+
+```{r}
+AIC(G1$lme, G2$lme, G3$lme, G4$lme, G5$lme)
+```
+Hmm.. Tämän mukaan malli G4 on paras. Selvällä erolla.
+
+Jatka tästä..
+
 
 ## 2.3 Neo-mallit erikseen
 
-Pitäisiköhän nämäkin analyysit tehdä reviiritiheydellä ja GAMM-malleilla?
+X ja Y ei ehkä tarpeellisia jos tulee alueen identifioiva muuttuja. 
 
 Heikin graduun:
 Lag-malli. Viime vuoden viljely osapopulaation alueella vaikuttaa seuraavan vuoden reviirimääriin.
@@ -700,7 +764,7 @@ agri5 = additiivinen, olisko pieni notkahdus reviireissä jos oikein paljon pelt
 open = ei oikein mitään vaikutusta, korreloi neon kanssa
 Y = reviirejä enemmän etelässä
 
-```{r, eval=FALSE}
+```{r}
 #neot tiheydellä, gamm
 
 
@@ -712,25 +776,10 @@ Y = reviirejä enemmän etelässä
 
 #neot erikseen
 N1=glmmTMB(terri ~ neo * year + X * Y + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+
+
 summary(N1)
 
-N2=glmmTMB(terri ~ neo + year + X + Y + (1|fyear) + (1|id), family=nbinom2, data=dataS)
-AIC(N1,N2)
-
-N3=glmmTMB(terri ~ neo + year  + Y + (1|fyear) + (1|id), family=nbinom2, data=dataS)
-AIC(N2,N3)
-
-N4=glmmTMB(terri ~ neo + Y + (1|fyear) + (1|id), family=nbinom2, data=dataS)
-AIC(N3,N4)
-
-N5=glmmTMB(terri ~ neo + year  + (1|fyear) + (1|id), family=nbinom2, data=dataS)
-AIC(N3,N5)
-
-N6=glmmTMB(terri ~  year + Y + (1|fyear) + (1|id), family=nbinom2, data=dataS)
-AIC(N3,N6)
-
-summary(N3)
-summary(N6)
 ```
 
 
