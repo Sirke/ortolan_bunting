@@ -451,7 +451,7 @@ G2$gam
 GAM-mallien validointi ja visualisointi on vielä vähän hakusessa. Residuaalit pitäisi tässäkin tarkistaa.
 
 
-#### 2.2.4 GAM, NB, offset, (0 + vuosi|lauluryhmä)
+### 2.2.4 GAM, NB, offset, (0 + vuosi|lauluryhmä)
 
 Perus-GAM, jossa random-rakenne on smootherina. 
 
@@ -529,9 +529,9 @@ Vuoden vaikutus reviirien määrään (slope) voi myös vaihdella osapopulaatioi
 Zuurin kommentit paketin valinnasta:    
  What package should we use for a GAMM?  
 
-Function  Package      Uses      Object names  
- gamm4      gamm4       lme4     M1$mer  M1$gam  
- gamm       mgcv        nlme     M1$lme  M1$gam   
+Function  Package      Uses      Object names    
+ gamm4      gamm4       lme4     M1_mer  M1_gam    
+ gamm       mgcv        nlme     M1_lme  M1_gam     
 
  To gamm4 or to mgcv?  
  Gaussian: gamm4 or gamm  
