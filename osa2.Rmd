@@ -83,7 +83,9 @@ Tarkastellaan muuttujia suhteessa toisiinsa:
 pairs.panels(data[,c(3:22)])
 ```
 
-Reviirien lukumäärällä (terri) ja Shannon-Wienerin indeksillä (shan ja shanG) sekä lajien lukumäärällä (snum) on suht vahva korrelaatio. Myös maatalousmaiseman osuus (agri5) ja pienrakenteiden tiheys (SSS) nousevat esille. Huomaa, että teiden ja rakennusten suhde reviirien määrään on negatiivinen, kun taas jokien ja purojen on positiivinen.
+Reviirien lukumäärällä (terri) ja Shannon-Wienerin indeksillä (shan ja shanG) sekä lajien lukumäärällä (snum) on suht vahva korrelaatio. Myös maatalousmaiseman osuus (agri5) ja pienrakenteiden tiheys (SSS) nousevat esille. Huomaa, että teiden ja rakennusten suhde reviirien määrään on negatiivinen, kun taas jokien ja purojen on positiivinen. 
+
+Huom! ShanG on kasviryhmien monimuotoisuutta kuvaava indeksi. Ei yksittäisten kasviluokitusten (shan).
 
 Keväällä kylvettävien kasvien osuus (open) ja keväällä pidemmällä oraalla olevien kasvien (cover) osuudet ovat toistensa vastakohdat.
 
@@ -134,35 +136,34 @@ Pelto tarkoittaa shannon-indeksiä ja avoimen maan osuutta (open).
 
 Mikään malleista ei aluksi toiminut, koska aineisto oli skaalaamaton. Alla kuitenkin asioita, joita tuli pohdittua ongelmaa selvittäessä:  
 
-Muuttuja 'id' eli jokaisen osapopulaaation yksilöivä tunniste on random-muuttuja koska se saattaa sisältää jotain informaatiota, jota fixed-muuttujat eivät sisällä koska koko populaatio ei ole täydellisesti edustettuna otoksessa.  
+
+**Random-muuttujat**
+Muuttuja 'id' eli jokaisen osapopulaaation yksilöivä tunniste on random-muuttuja koska se saattaa sisältää jotain informaatiota, jota fixed-muuttujat eivät sisällä johtuen siitä, että koko populaatio ei ole täydellisesti edustettuna otoksessa.  
 
 Määritelmiä siitä, milloin effect on fixed tai random: "Effects are fixed if they are interesting in themselves or random if there is interest in the underlying population. When a sample exhausts the population, the corresponding variable is fixed; when the sample is a small (i.e., negligible) part of the population the corresponding variable is random".  
 
-Mutta entäpä vuosi?  
+*Mutta entäpä vuosi?*  
 
 Random-efektinä vuosi huomioisi vuosien välisen ajallisen riippuvuuden. Osapopulaatiolla, jolla on monta lauluryhmää yhtenä vuonna, on suuremmalla todennäköisyydellä monta lauluryhmää myös seuraavana vuonna.  
 Fixed-efektinä se selittäisi lauluryhmien määrässä tapahtuvaa vaihtelua suoraan. Vuodet ovat erilaisia (esim. tapahtumat Afrikassa vaihtelevat) ja jokin asia, jota emme ole tajunneet mitata voi selittyäkin vuodella.  
 
 
-Muuttuja sekä fixed että random-tekijänä?  
+*Muuttuja sekä fixed että random-tekijänä?* 
 
 Lue aiheesta [täältä](https://www.theanalysisfactor.com/mixed-models-predictor-both-fixed-random/). Voiko vuosi siis olla fixed effect vain silloin kun se on interaktiossa jonkun toisen muuttujan kanssa? 
 
 
-Nested or crossed?
+*Nested or crossed?*
 
-Relatively few mixed effect modeling packages can handle crossed random effects, i.e. those where one level of a random effect can appear in conjunction with more than one level of another effect. (This definition is confusing, and I would happily accept a better one.) A classic example is crossed temporal and spatial effects. If there is random variation among temporal blocks (e.g. years) ‘’and’‘random variation among spatial blocks (e.g. sites),’‘and’‘if there is a consistent year effect across sites and’‘vice versa’’, then the random effects should be treated as crossed. 
+Relatively few mixed effect modeling packages can handle crossed random effects, i.e. those where one level of a random effect can appear in conjunction with more than one level of another effect. (This definition is confusing, and I would happily accept a better one.) A classic example is crossed temporal and spatial effects. If there is random variation among temporal blocks (e.g. years) and random variation among spatial blocks (e.g. sites), and if there is a consistent year effect across sites and "vice versa", then the random effects should be treated as crossed. 
 
 Selkeä vastaus lötyy [täältä](https://stats.stackexchange.com/questions/228800/crossed-vs-nested-random-effects-how-do-they-differ-and-how-are-they-specified).
 
 
-Random-muuttujan havaintojen määrä?  
+*Random-muuttujan havaintojen määrä?*  
 
 Joillain osapopulaatioilla on käyty vain kerran, joillain taas täydet 19 kertaa. Jos osapopulaatio on random-tekijä täytyy siitä olla havaintoja useampia. Muuten ei pysty arvioimaan ryhmän sisäistä vaihtelua? Katso kysymys [aiheesta](https://stats.stackexchange.com/questions/242821/how-will-random-effects-with-only-1-observation-affect-a-generalized-linear-mixe). Vastaus on kai, että ei haittaa, kunhan vaihtelun saa arvioitua muista osapopulaatioista, joista on useampia havaintoja. 
 
-Muuttujien skaalaaminen?
-
-Vuoden keskittäminen? Vuosi 2000 olisi baseline ja siitä eteenpäin vuosi 1,2,3 jne. Tai Cyear = year-mean(year). Uusi muuttuja.
 
 ### 2.2.2 GLMM-mallit
 
@@ -179,9 +180,9 @@ M2=glmmTMB(terri ~ SSS + agri5 + X*Y + year + (1|fyear) + (1|id), family=nbinom2
 
 M3=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec  + (1|fyear)  + (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
-M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
+M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shanG + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
-M5=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
+M5=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shanG + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
 output1<-model.sel(M1,M2,M3,M4,M5) 
 
@@ -189,21 +190,21 @@ output1<-model.sel(M1,M2,M3,M4,M5)
 output1
 ```
 
-Taulukon mukaan mallit M4 ja M5 ovat parhaimpia, 1.83 AICc yksikön erolla toisistaan. Mallit eroavat toisistaan vuoden ja lämpötilan sekä sadannan interaktioiden suhteen. M4 on yksinkertaisempi eli ilman ilmastomuuttujia.
+Taulukon mukaan mallit M4 ja M2 ovat parhaimpia, 1.07 AICc yksikön erolla toisistaan. 
 
-Tehdään model averaging M4 ja M5 malleilla:
+Tehdään model averaging M4 ja M2 malleilla:
 
 ```{r}
-output2=model.sel(M4,M5)
+output2=model.sel(M4,M2)
 
 #tehdään model averaging
 summary(model.avg(output2, revised.var = TRUE))
 ```
 
-Taulukon tulkinta on hieman epäselvää mulle. Taulukkohan vihjaa ettei interaktiot olisi merkittäviä, mutta mehän halutaan tutkia nimenomaan interaktioita koska ne linkittyvät asioihin, jotka kertovat reviirien lukumäärän vuosittaisesta muutoksesta. Muuttujien tutkiminen ilman interaktiota vuoden kanssa ei ole tässä tapauksessa mielekästä, koska se selittäisi ennemminkin asioita, jotka vaikuttavat reviirien absoluuttiseen lukumäärään, ei muutokseen. Ko,kö?
+Taulukon tulkinta on hieman epäselvää mulle. Taulukkohan vihjaa etteivät interaktiot olisi merkittäviä, mutta mehän halutaan tutkia nimenomaan interaktioita koska ne linkittyvät asioihin, jotka kertovat reviirien lukumäärän vuosittaisesta muutoksesta. Muuttujien tutkiminen ilman interaktiota vuoden kanssa ei ole tässä tapauksessa mielekästä, koska se selittäisi ennemminkin asioita, jotka vaikuttavat reviirien absoluuttiseen lukumäärään, ei muutokseen. Ko,kö?
 
 ```{r}
-summary(M4)
+summary(M2)
 ```
 
 Mä jatkaisin tästä karsimalla mallista pois ei-merkitsevät interaktiot ja muuttujat. Mulla on tässä prosessissa vähän logiikka hakusessa.
@@ -211,15 +212,15 @@ Mä jatkaisin tästä karsimalla mallista pois ei-merkitsevät interaktiot ja mu
 Mallin validointi:
 ```{r}
 #malli uudelleen, ML-asetuksella
-M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shan + year*open + (1|fyear) + (1|id), family=nbinom2, data=dataS)
+M2=glmmTMB(terri ~ SSS + agri5 + X*Y + (1|fyear) + (1|id), family=nbinom2, data=dataS)
 
 op<-par(mfrow=c(3,3),mar=c(5,4,1,2))
 #plot(M4,add.smooth = F,which =1)
-E<-resid(M4)
+E<-resid(M2)
 hist(E, xlab = "residuals",main = "")
 plot(dataS$SSS,E,xlab = "SSS",ylab="residuals")
 plot(dataS$year,E,xlab = "year",ylab="residuals")
-plot(dataS$shan,E,xlab = "shan",ylab="residuals")
+plot(dataS$shanG,E,xlab = "shanG",ylab="residuals")
 plot(dataS$agri5,E,xlab = "agri5",ylab="residuals")
 plot(dataS$open,E,xlab = "open",ylab="residuals")
 plot(dataS$X,E,xlab = "X",ylab="residuals")
@@ -240,16 +241,16 @@ M2=glmmTMB(terri ~ SSS + agri5 + X*Y + year + offset(log(area))+ (1|fyear) + (1|
 
 M3=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec  + offset(log(area))+ (1|fyear)  + (1|id), family=nbinom2, data=dataS,REML=FALSE)
 
-M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shan + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS,REML=FALSE)
+M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shanG + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS,REML=FALSE)
 
-M5=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS,REML=FALSE)
+M5=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shanG + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS,REML=FALSE)
 
 output1<-model.sel(M1,M2,M3,M4,M5) 
 output1
 ```
 
 ```{r}
-output2=model.sel(M4,M2)
+output2=model.sel(M2,M3,M4)
 
 #tehdään model averaging
 summary(model.avg(output2, revised.var = TRUE))
@@ -269,7 +270,7 @@ E<-resid(M2)
 hist(E, xlab = "residuals",main = "")
 plot(dataS$SSS,E,xlab = "SSS",ylab="residuals")
 plot(dataS$year,E,xlab = "year",ylab="residuals")
-plot(dataS$shan,E,xlab = "shan",ylab="residuals")
+plot(dataS$shanG,E,xlab = "shanG",ylab="residuals")
 plot(dataS$agri5,E,xlab = "agri5",ylab="residuals")
 plot(dataS$open,E,xlab = "open",ylab="residuals")
 plot(dataS$X,E,xlab = "X",ylab="residuals")
@@ -293,9 +294,9 @@ M2=glmmTMB(terri ~ SSS + agri5 + X*Y + year + log(area)+ (1|fyear) + (1|id), fam
 
 M3=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec  + log(area)+ (1|fyear)  + (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
-M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shan + year*open + log(area)+ (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
+M4=glmmTMB(terri ~ SSS + agri5 + X*Y + year*shanG + year*open + log(area)+ (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
-M5=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + log(area) + (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
+M5=glmmTMB(terri ~ SSS + agri5 + X*Y + year*temp + year*prec + year*shanG + year*open + log(area) + (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
 output1<-model.sel(M1,M2,M3,M4,M5) 
 output1
@@ -303,7 +304,7 @@ output1
 
 
 ```{r}
-output2=model.sel(M4,M2)
+output2=model.sel(M3,M2)
 
 #tehdään model averaging
 summary(model.avg(output2, revised.var = TRUE))
@@ -322,7 +323,7 @@ E<-resid(M2)
 hist(E, xlab = "residuals",main = "")
 plot(dataS$SSS,E,xlab = "SSS",ylab="residuals")
 plot(dataS$year,E,xlab = "year",ylab="residuals")
-plot(dataS$shan,E,xlab = "shan",ylab="residuals")
+plot(dataS$shanG,E,xlab = "shanG",ylab="residuals")
 plot(dataS$agri5,E,xlab = "agri5",ylab="residuals")
 plot(dataS$open,E,xlab = "open",ylab="residuals")
 plot(dataS$X,E,xlab = "X",ylab="residuals")
@@ -331,7 +332,7 @@ plot(log(dataS$area),E,xlab = "log(area)",ylab="residuals")
 par(op)
 ```
 
-Pinta-alan laittaminen kovariaatiksi ei näytä muuttuvan tuloksia pääpiirteissään. Log(area) on merkitsevä.
+Pinta-alan laittaminen kovariaatiksi ei näytä muuttuvan tuloksia pääpiirteissään. Log(area) on merkitsevä. Mutta sen residuaaleissa on tötterökuvio.
 
 
 #### SSS muuttuja pilkottuna
@@ -345,16 +346,16 @@ M2=glmmTMB(terri ~ Abuild + Astream + Aroad + Ariver + agri5 + X*Y + year + offs
 
 M3=glmmTMB(terri ~ Abuild + Astream + Aroad + Ariver + agri5 + X*Y + year*temp + year*prec  + offset(log(area))+ (1|fyear)  + (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
-M4=glmmTMB(terri ~ Abuild + Astream + Aroad + Ariver + agri5 + X*Y + year*shan + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
+M4=glmmTMB(terri ~ Abuild + Astream + Aroad + Ariver + agri5 + X*Y + year*shanG + year*open + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
-M5=glmmTMB(terri ~ Abuild + Astream + Aroad + Ariver + agri5 + X*Y + year*temp + year*prec + year*shan + year*open + offset(log(area)) + (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
+M5=glmmTMB(terri ~ Abuild + Astream + Aroad + Ariver + agri5 + X*Y + year*temp + year*prec + year*shanG + year*open + offset(log(area)) + (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
 output1<-model.sel(M1,M2,M3,M4,M5) 
 output1
 ```
 
 ```{r}
-output2=model.sel(M4,M2)
+output2=model.sel(M3,M2)
 
 #tehdään model averaging
 summary(model.avg(output2, revised.var = TRUE))
@@ -376,7 +377,7 @@ plot(dataS$Astream,E,xlab = "streams",ylab="residuals")
 plot(dataS$Ariver,E,xlab = "rivers",ylab="residuals")
 plot(dataS$Aroad,E,xlab = "roads",ylab="residuals")
 plot(dataS$year,E,xlab = "year",ylab="residuals")
-plot(dataS$shan,E,xlab = "shan",ylab="residuals")
+plot(dataS$shanG,E,xlab = "shanG",ylab="residuals")
 plot(dataS$agri5,E,xlab = "agri5",ylab="residuals")
 plot(dataS$open,E,xlab = "open",ylab="residuals")
 plot(dataS$X,E,xlab = "X",ylab="residuals")
@@ -384,6 +385,10 @@ plot(dataS$Y,E,xlab = "Y",ylab="residuals")
 plot(log(dataS$area),E,xlab = "log(area)",ylab="residuals")
 par(op)
 ```
+
+Joenpientareilla näyttäisi olevan merkitsevä positiivinen vaikutus reviirien määrään. Rakennuksilla taasen ei-merkitsevä negatiivinen.
+
+Huom! Offset voisi kai olla myös argumentti funktiolle, eikä muuttuja niinkuin tässä. Vaihtoehtoa kokeillaan myöhemmin. 
 
 
 ### 2.2.3 GAM-malli, Tweedie
@@ -416,11 +421,15 @@ Reviiritiheys mennyt alas, ylös ja alas.
 
 Sadanta ja lämpötila negatiivisesti korreloituneita. 
 
-Mallien sovitus:  HJÄLP! Vaikea löytää esimerkkejä. Tässä joitain: [esim1](https://gist.github.com/gavinsimpson/6d05af9186b9f9419cca5a4507af3aa0),   
+Mallien sovitus: Vaikea löytää esimerkkejä. Tässä yksi: [esim1](https://gist.github.com/gavinsimpson/6d05af9186b9f9419cca5a4507af3aa0).  
 
+Jotta saisin random-rakenteen huolettomasti rakennettua, haluaisin käyttää gamm-funktiota. Mutta silloin Tweedie-jakaumaa käyttäessä pitää pystyä määrittämään ko. jakaumalle p-arvo. En löydä ohjeita siitä, miten p-arvoa voisi lähteä arvioimaan. Ehkä kokeilemalla?
 
+Toinen vaihtoehto on sovittaa malli gam-funktiolla, jolloin Tweedie-jakauma arvioi p-arvon itse. Tällöin random-rakenne pitää rakentaa hieman erilailla.
 
 Muuttujan voi laittaa random-tekijäksi myös määrittämällä se smootherissa: s(...,bs="re")  Lue [tämä](https://stat.ethz.ch/R-manual/R-devel/library/mgcv/html/random.effects.html) ja [tämä](https://stats.stackexchange.com/questions/197952/two-methods-of-adding-random-effects-to-a-gam-give-very-different-results-why-i). Näin voi käyttää gam-funktiota, jolloin family=tw (eikä Tweedie) eikä Tweedien p-arvoa tarvitse määrittää.
+
+Näin aluksi vain koordinaatit X ja Y saavat smootherin. 
 
 
 ```{r}
@@ -430,9 +439,9 @@ G2=gam(terriD ~  year + agri5 + SSS + s(Y) + s(X) + s(fyear,bs="re") + s(id,bs="
 
 G3=gam(terriD ~ agri5 + SSS + s(Y) + s(X) + year*temp + year*prec + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
 
-G4=gam(terriD ~ agri5 + SSS + s(Y) + s(X) + year*shan + year*open + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
+G4=gam(terriD ~ agri5 + SSS + s(Y) + s(X) + year*shanG + year*open + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
 
-G5=gam(terriD ~ agri5 + SSS + s(Y) + s(X) + year*shan + year*open + year*temp + year*prec + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
+G5=gam(terriD ~ agri5 + SSS + s(Y) + s(X) + year*shanG + year*open + year*temp + year*prec + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
 
 AIC(G1,G2,G3,G4,G5)
 ```
@@ -453,12 +462,11 @@ GAM-mallien validointi ja visualisointi on vielä vähän hakusessa. Residuaalit
 
 ### 2.2.4 GAM, NB, offset, (0 + vuosi|lauluryhmä)
 
-Perus-GAM, jossa random-rakenne on smootherina. 
+Perus-GAM, jossa random-rakenne on smootherina. Selitettävänä muuttujana reviirien määrä. Pinta-ala offsettina. Negative binomial jakauma.
 
 Mutta [tässä](http://martijnwieling.nl/files/GAM-tutorial-Wieling.pdf) tutoriaalissa sanotaan ettei random slopen ja random interceptin välille ole mahdollista ohjelmoida gam-funktiolla korrelaatiota:  
 
-*4.7.2 Including a random slope* In similar fashion, we may include a by-speaker linear random slope (which would
-correspond to tilting the non-linear pattern) for the two-word-contrast (Word) as follows:  
+*Including a random slope* In similar fashion, we may include a by-speaker linear random slope (which would correspond to tilting the non-linear pattern) for the two-word-contrast (Word) as follows:  
 
 m4 <- bam(Pos ~ Word + s(Time, by=Word) + s(Speaker,bs="re") + s(Speaker,Word,bs="re"), data=dat)  
  
@@ -466,34 +474,40 @@ In the lmer specification this random slope would be represented by **(0+Word|Sp
 correlation between random intercepts and random slopes (i.e. an lmer specification such as (1+Word|Speaker) is not possible). At present this is a drawback compared to linear
 mixed-effects regression, at least when linear random slopes are used.
 
-Eli alla käyttämäni random-rakenne ei ole oikein, tai ainakaan just se mitä haetaan. Pitäisi kai käyttää GAMM-funktiota sit kuitenkin. 
+Eli alla käyttämäni random-rakenne ei ole oikein, tai ainakaan just se mitä haetaan. Random slopen ja random interceptin välille ei saa korrelaatiota. Pitäisi kai käyttää GAMM-funktiota sit kuitenkin. 
 
 ```{r}
-M0 <- gam(terri ~ year + s(year,id, bs ="re"), offset=log(area), family = nb(), data= dataS, method = "ML")
+M1 <- gam(terri ~ year + s(id, bs="re") + s(year,id, bs ="re"), offset=log(area), family = nb(), data= dataS, method = "ML")
 
-M1 <- gam(terri ~ SSS + agri5*year + s(Y, bs ="cs") + s(X, bs ="cs") + s(year,id, bs="re"), offset=log(area), family = nb(),data= dataS, method = "ML")
+M2 <- gam(terri ~ SSS + agri5*year + s(Y, bs ="cs") + s(X, bs ="cs") + s(id, bs="re") + s(year,id, bs="re"), offset=log(area), family = nb(),data= dataS, method = "ML")
 
-M2 <- gam(terri ~ SSS + agri5*year + s(Y, bs ="cs") + s(X, bs ="cs") + year*temp + year*prec + s(year,id, bs="re"), offset=log(area), family = nb(), data= dataS, method = "ML")
+M3 <- gam(terri ~ SSS + agri5*year + s(Y, bs ="cs") + s(X, bs ="cs") + year*temp + year*prec + s(id, bs="re") + s(year,id, bs="re"), offset=log(area), family = nb(), data= dataS, method = "ML")
 
-M3 <- gam(terri ~ SSS + agri5*year + s(Y, bs ="cs") + s(X, bs ="cs") + year*shanG + year*open + s(year,id, bs="re"), offset=log(area), family = nb(), data= dataS, method = "ML")
+M4 <- gam(terri ~ SSS + agri5*year + s(Y, bs ="cs") + s(X, bs ="cs") + year*shanG + year*open + s(id, bs="re") + s(year,id, bs="re"), offset=log(area), family = nb(), data= dataS, method = "ML")
 
-M4 <- gam(terri ~ SSS + agri5*year + s(Y, bs ="cs") + s(X, bs ="cs") + year*temp + year*prec + year*shanG + year*open + s(year,id, bs="re"), offset=log(area), family = nb(), data= dataS, method = "ML")
+M5 <- gam(terri ~ SSS + agri5*year + s(Y, bs ="cs") + s(X, bs ="cs") + year*temp + year*prec + year*shanG + year*open + s(id, bs="re") + s(year,id, bs="re"), offset=log(area), family = nb(), data= dataS, method = "ML")
 
-AIC(M0,M1,M2,M3,M4)
+AIC(M1,M2,M3,M4,M5)
 ```
 
-M2 ja M4 ovat parhaimpia näistä. M2 on yksinkertaisempi.
+M3 ja M5 ovat parhaimpia näistä. M3 on yksinkertaisempi.
 
 ```{r}
-summary(M2)
-```
-
-```{r}
-plot(M2)
+summary(M3)
 ```
 
 ```{r}
-gam.check(M2)
+summary(M5)
+```
+
+
+
+```{r}
+plot(M3)
+```
+
+```{r}
+gam.check(M3)
 ```
 
 Pitäisikö plotata vielä tarkemmin kukin muuttuja vs. residuaalit?
@@ -501,7 +515,11 @@ Pitäisikö plotata vielä tarkemmin kukin muuttuja vs. residuaalit?
 
 ### 2.2.5 GAMM, NB, offset, (1 + vuosi|lauluryhmä)
 
-**Offset argumenttina:** "Can be used to supply a model offset for use in fitting. Note that this offset
+Lisäsin näihin malleihin myös agri5-muuttujalle interaktion vuoden kanssa.
+
+**Offset argumenttina:** 
+
+"Can be used to supply a model offset for use in fitting. Note that this offset
 will always be completely ignored when predicting, unlike an offset included in formula (this used to conform to the behaviour of lm and glm)." Eli jos argumenttina niin predicted arvot eivät huomioi offsettia. Kumpikohan olis fiksumpi?
 
 
@@ -523,8 +541,10 @@ P5: The correlation between intercept deviations and V3 deviations across levels
 
 Eli intercept voi vaihdella kunkin lauluryhmän mukaan (lähtökohtaisesti joillain osapopulaatioilla on enemmän tai vähemmän reviirejä, joten yleistä mallia vääntäessä tämä vaihtelu pitää sallia ja ottaa huomioon). Random intercept malli kertoo kuinka paljon osapopulaatioiden välillä on "selittämätöntä" vaihtelua, eli vaihtelua siinä, miten paljon reviirien määrä johtuu jostain muuusta kuin fixed osan muuttujista.   
 
-Vuoden vaikutus reviirien määrään (slope) voi myös vaihdella osapopulaatioiden välillä. Jossain lasku on jyrkempi ja jossain loivempi. Slope ja intercept voivat korreloida jossain määrin keskenään eli esimerkiksi osapopulaatioilla, joilla on enemmän reviirejä myös vuosittainen lasku reviirien määrässä on jyrkempi. Tai toisinpäin.  
+Vuoden vaikutus reviirien määrään (slope) voi myös vaihdella osapopulaatioiden välillä. Jossain lasku on jyrkempi ja jossain loivempi. Slope ja intercept voivat korreloida jossain määrin keskenään eli esimerkiksi osapopulaatioilla, joilla on enemmän reviirejä myös vuosittainen lasku reviirien määrässä on jyrkempi. Tai toisinpäin.   
+ 
 
+**Mikä R-paketti valitaan?**
 
 Zuurin kommentit paketin valinnasta:    
  What package should we use for a GAMM?  
@@ -551,15 +571,20 @@ Poisson/binomial:
  T1 <- gamm(Y ~ s(X), correlation = corAR1(form=~ Time))  
  T1 <- gamm(Y ~ s(X), correlation = corSpher(form=~ Lat+Lon))  
 
-**Miten gamm malleja vertaillaan?** AIC ei kai ihan pätevä. gamm4 ja gamm funktioilla on ilmeisesti eroa. Katso Zuurin pingviiniesimerkit. Miten vapausasteet lasketaan gammeilla? smoothereissa on lineaarinen ja random osa? Eli yksi vai kaksi vapausastetta? Ratkaisee sen miten AIC lasketaan. Asiasta ei kai olla ihan yhtä mieltä. Zuur neuvoo tekemään analyysit Bayeslaisittain, jolloin tätä ongelmaa ei ole. Vai onko tämä ongelma vasta sitten kun vertailtavien mallien AIC arvot ovat hyvin lähekkäin. Jos niiden välillä on selvä ero -> AIC arvoihin voi luottaa??
 
-mgvc.FAQ ([täällä](https://stat.ethz.ch/R-manual/R-devel/library/mgcv/html/mgcv-FAQ.html)):   
+**Miten gamm malleja vertaillaan?** 
+
+AIC ei kai ihan pätevä. gamm4 ja gamm funktioilla on ilmeisesti eroa. Katso Zuurin pingviiniesimerkit. Miten vapausasteet lasketaan gammeilla? smoothereissa on lineaarinen ja random osa? Eli yksi vai kaksi vapausastetta? Ratkaisee sen miten AIC lasketaan. Asiasta ei kai olla ihan yhtä mieltä. Zuur neuvoo tekemään analyysit Bayeslaisittain, jolloin tätä ongelmaa ei ole. Vai onko tämä ongelma vasta sitten kun vertailtavien mallien AIC arvot ovat hyvin lähekkäin. Jos niiden välillä on selvä ero -> AIC arvoihin voi luottaa??
+
+mgvc.FAQ ([täällä](https://stat.ethz.ch/R-manual/R-devel/library/mgcv/html/mgcv-FAQ.html)):  
 
 *When using gamm or gamm4, the reported AIC is different for the gam object and the lme or lmer object. Why is this?* There are several reasons for this. The most important is that the models being used are actually different in the two representations. When treating the GAM as a mixed model, you are implicitly assuming that if you gathered a replicate dataset, the smooths in your model would look completely different to the smooths from the original model, except for having the same degree of smoothness. Technically you would expect the smooths to be drawn afresh from their distribution under the random effects model. When viewing the gam from the usual penalized regression perspective, you would expect smooths to look broadly similar under replication of the data. i.e. you are really using Bayesian model for the smooths, rather than a random effects model (it's just that the frequentist random effects and Bayesian computations happen to coincide for computing the estimates). As a result of the different assumptions about the data generating process, AIC model comparisons can give rather different answers depending on the model adopted. Which you use should depend on which model you really think is appropriate. In addition the computations of the AICs are different. The mixed model AIC uses the marginal likelihood and the corresponding number of model parameters. The gam model uses the penalized likelihood and the effective degrees of freedom.  
 
-*How can I compare gamm models?* In the identity link normal errors case, then AIC and hypotheis testing based methods are fine. Otherwise it is best to work out a strategy based on the summary.gam Alternatively, simple random effects can be fitted with gam, which makes comparison straightforward. Package gamm4 is an alternative, which allows AIC type model selection for generalized models.  
+*How can I compare gamm models?* In the identity link normal errors case, then AIC and hypotheis testing based methods are fine. Otherwise it is best to work out a strategy based on the summary.gam Alternatively, simple random effects can be fitted with gam, which makes comparison straightforward. Package gamm4 is an alternative, which allows AIC type model selection for generalized models. 
+
 
 **Temporaalinen autokorrelaatio?** Peräkkäiset vuodet ovat reviirimäärältään samankaltaisempia kuin kauempana toisistaan olevat vuodet? corAR1 jutska.
+
 
 **Negative binomial jakauman Theta?** gamm4-funktion negbin jakaumaan pitää määritellä theta. Miten se valitaan? 
 
@@ -568,8 +593,8 @@ Zuurin kaksi tapaa arvioida theta:
 1) Käytetään gamm4-funktiota ja kokeillaan erilaisia thetoja, katsotaan kuvaajasta, mikä antaa parhaimman AIC arvon
 
 ```{r}
-AllThetas <- c(0.1, 0.2, 0.3, 0.4, 0.6, 1, 2, 5, 10)
-AICs <- vector(length = 9)
+AllThetas <- c(0.1, 0.5, 1, 5, 10,20)
+AICs <- vector(length = 6)
 i <- 1
 for (MyTheta in AllThetas) {
        M1 <- gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shanG + year*open + offset(log(area)),
@@ -591,58 +616,59 @@ plot(x = AllThetas,
 
 Tästä ei tule tulokseksi mitään järkeävää. Tai AIC:t vaan laskee mitä isompi theta on. Onko se järkevä tulos?
 
-2) Käytetään gam-funktiota, jolloin family=nb() arvioi itse sopivan thetan. Tätä varten random-tekijät pitää muuttaa smoothereiksi. En tiedä osasinko tehdä tämän oikein. Eli onko random =~ (1 + year| id) sama kuin s(year,id, bs =  "re") ?
+2) Käytetään gam-funktiota, jolloin family=nb() arvioi itse sopivan thetan. Tässä tulee taas ongelmaksi gam-funktion random-rakenne. Miten siihen ohjelmoidaan oikeanlainen random intercept ja slope rakenne? Koodissa on nyt toistaiseksi rakenne, joka ymmärtääkseni ei salli korrelaatiota slopen ja interceptin välillä (eli (0 + year|id)).
 
 ```{r}
 #thetan voisi arvioida sovittamalla mallin GAM:lla eli random tekijä smootheriksi. Mutta mikä malli tässä pitäisi olla? Monimutkaisin?
 
-M6 <- gam(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shanG + year*open + offset(log(area)) + s(year,id, bs =  "re"), family = nb(),data = dataS)
+M6 <- gam(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shanG + year*open + offset(log(area)) + s(id, bs="re") + s(year,id, bs="re"), family = nb(),data = dataS)
 summary(M6)
 Theta <- M6$family$getTheta(TRUE)
 
 
-# If you want then you can run M4 again with the optimal theta.
-M4 <- gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shanG + year*open + offset(log(area)),
+# If you want then you can run M1 again with the optimal theta.
+M7 <- gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shanG + year*open + offset(log(area)),
             random = ~(1 + year|id),
             family = negbin(theta = Theta),  
             data = dataS)
 
 # M6 and M4 should now give similar results.
 summary(M6)
-summary(M4$gam)
-summary(M4$mer)
+summary(M7$gam)
+summary(M7$mer)
 
 gam.vcomp(M6)
 ```
 
-Ei nää mallit nyt ihan täsmää keskenään vaikka pitäisi. Siis jos vertailee muuttujille ja interceptille arvioituja parametreja. Ja random-muuttujien std.dev arvoja. Mutta jos tästä silti ottaisi tuon Thetan onkeensa. Eli 5.354404.
+Ei nää mallit nyt ihan täsmää keskenään vaikka pitäisi. Siis jos vertailee muuttujille ja interceptille arvioituja parametreja. Ja random-muuttujien std.dev arvoja. Mutta jos tästä silti ottaisi tuon Thetan onkeensa.
+
+```{r}
+Theta
+```
+
 
 Jos tässä kokeilussa oli väärin käyttää tuota monimutkaisinta mallia niin kokeillaan sitten myös yksinkertaisemmalla mallilla. Saanko saman thetan?
 
 ```{r}
-M6 <- gam(terri ~ year + offset(log(area)) + s(year,id, bs =  "re"), family = nb(),data = dataS)
-summary(M6)
-Theta2 <- M6$family$getTheta(TRUE)
+M8 <- gam(terri ~ year + offset(log(area)) + s(id, bs="re") + s(year,id, bs="re"), family = nb(), data = dataS)
+summary(M8)
+Theta2 <- M8$family$getTheta(TRUE)
 
 
 # If you want then you can run M4 again with the optimal theta.
-M4 <- gamm4(terri ~ year + offset(log(area)),
+M9 <- gamm4(terri ~ year + offset(log(area)),
             random = ~(1 + year|id),
             family = negbin(theta = Theta2),  
             data = dataS)
 
-# M6 and M4 should now give similar results.
-summary(M6)
-summary(M4$gam)
-summary(M4$mer)
-
-gam.vcomp(M6)
 Theta2
 ```
 
-Nyt theta on 2.439918 eli eroaa edellisestä arviosta. Zuurin esimerkki ei selitä, mitä mallia thetan arvioinnissa pitäisi käyttää. Siinä käytetään mallia, johon on jo aiemmista kiemuroista päädytty, eikä esimerkissä tehdä mallin valintaa tämän jälkeen (etsitään vain sopiva theta ja sovitetaan negbin malli).
+Nyt theta on 14.02726 eli eroaa edellisestä arviosta jonkin verran. Zuurin esimerkki ei selitä, mitä mallia thetan arvioinnissa pitäisi käyttää. Siinä käytetään mallia, johon on jo aiemmista kiemuroista päädytty, eikä esimerkissä tehdä mallin valintaa tämän jälkeen (etsitään vain sopiva theta ja sovitetaan negbin malli).
 
-Nyt en oikein tiedä minkä thetan valitsisin. Toistaiseksi valitsen tuon ekan vaihtoehdon. 
+Nyt en oikein tiedä minkä thetan valitsisin. Toistaiseksi valitsen tuon ekan vaihtoehdon, jonka etsimisessä käytettiin monimutkaisempaa mallia.
+
+Nyt takaisin varsinaisten mallien pariin kun theta on arvioitu:
 
 ```{r}
 #varsinaiset mallit, joissa theta arvioitu gam-mallin avulla
@@ -653,19 +679,19 @@ G2=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year + offset(log(area)), rand
 
 G3=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X)+ year*temp + year*prec + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=Theta), data=dataS)
 
-G4=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*shan + year*open + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=Theta), data=dataS)
+G4=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*shanG + year*open + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=Theta), data=dataS)
 
-G5=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shan + year*open + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=Theta), data=dataS)
+G5=gamm4(terri ~ SSS + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shanG + year*open + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=Theta), data=dataS)
 ```
 
-Malli G4 ilmoittaa "failure to converge in 10000 evaluations" mutta tämä ei kuitenkaan ole mikään error-viesti ja malli näyttää toimineen. Jännä juttu. Mulla on R:ssä asennettuna joku paketti, joka kertoo laskelmien edistymisestä. Teksti taitaa tulla sen takia. Selvitetään..
+
 
 ```{r}
 AIC(G1$mer, G2$mer, G3$mer, G4$mer, G5$mer)
 anova(G1$mer, G2$mer, G3$mer, G4$mer, G5$mer)
 ```
 
-G3 ja G5 näyttävät saavan pienimmät AIC arvot. Ero näiden välillä on hyvin pieni. 
+G3 ja G5 näyttävät saavan pienimmät AIC arvot.  
 Mutta joissain esimerkeissä vertaillaan BIC arvoja, näissä mitattuna G2 olisi paras.
 
 Entäs kun ero on noin mitättömän pieni? Valitaanko yksinkertaisempi malli? G3?
@@ -709,10 +735,9 @@ T1 <- gam(E4 ~ s(Y), data = dataS)
 summary(T1)
 plot(T1)
 abline(h = 0, lty = 2)
-
 ```
 
-Tää validointi on Zuurin esimerkistä GAMM NB esimerkistä. En vielä osaa sen kummemmin tulkita näitä. Enkä tiedä mitä kaikkea pitäisi plotata.
+Tää validointi on Zuurin GAMM NB esimerkistä. En vielä osaa sen kummemmin tulkita näitä. Enkä tiedä mitä kaikkea pitäisi plotata.
 
 
 Samat mallit voisi tehdä vielä niin, että SSS on eroteltu Abuild + Astream + Aroad + Ariver. Kokeilen tätä sitten myöhemmin kun päädyn johonkin ratkaisuun mallin rakenteesta ja funktiosta.
@@ -720,18 +745,18 @@ Samat mallit voisi tehdä vielä niin, että SSS on eroteltu Abuild + Astream + 
 
 #### 2.2.6 gamm-funktio
 
-Samat mallit voisi ajaa myös gamm-funktiolla mutta miten tehdään mallin vertailu jos AIC ei ole käytettävissä? Paitsi, että Zuurin kirjassa AIC vertailua tehdään kyllä ihan mennen tullen. 
+Samat mallit voisi ajaa myös gamm-funktiolla. gamm-funktion etu olisi se, että sen negative binomial jakaumaan ei tarvitse määrittää thetaa. Arvioi kai sen itse (?) Mutta miten tehdään mallin vertailu jos AIC ei ole käytettävissä? Paitsi, että Zuurin kirjassa AIC vertailua tehdään kyllä ihan mennen tullen. 
 
 ```{r}
 G1=gamm(terri ~ year, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS) 
 
-G2=gamm(terri ~ SSS + agri5*year + s(Y,bs="cr") + s(X,bs="cr") + year , offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
+G2=gamm(terri ~ SSS + agri5*year + s(Y,bs="cr") + s(X,bs="cr") + year, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
 
 G3=gamm(terri ~ SSS + agri5*year + s(Y,bs="cr") + s(X,bs="cr")+ year*temp + year*prec , offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
 
-G4=gamm(terri ~ SSS + agri5*year + s(Y,bs="cr") + s(X,bs="cr") + year*shan + year*open, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
+G4=gamm(terri ~ SSS + agri5*year + s(Y,bs="cr") + s(X,bs="cr") + year*shanG + year*open, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
 
-G5=gamm(terri ~ SSS + agri5*year + s(Y,bs="cr") + s(X,bs="cr") + year*temp + year*prec + year*shan + year*open, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
+G5=gamm(terri ~ SSS + agri5*year + s(Y,bs="cr") + s(X,bs="cr") + year*temp + year*prec + year*shanG + year*open, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
 ```
 
 
@@ -739,9 +764,21 @@ G5=gamm(terri ~ SSS + agri5*year + s(Y,bs="cr") + s(X,bs="cr") + year*temp + yea
 ```{r}
 AIC(G1$lme, G2$lme, G3$lme, G4$lme, G5$lme)
 ```
-Hmm.. Tämän mukaan malli G4 on paras. Selvällä erolla.
+Hmm.. Tämän mukaan malli G2 ja G4 ovat parhaimpia. G2 on yksinkertaisempi.
 
-Jatka tästä..
+```{r}
+summary(G4$gam)
+summary(G4$mer)
+plot(G4$gam)
+```
+
+```{r}
+summary(G2$gam)
+summary(G2$mer)
+plot(G2$gam)
+```
+
+
 
 
 ## 2.3 Neo-mallit erikseen
@@ -754,19 +791,14 @@ Aineisto jaetaan kolmeen maantieteelliseen alueeseen. Alueiden vertailu.
 
 ```{r, fig.width=14, fig.height=12}
 
-pairs.panels(dataS[,c("terriD","year","neo","agri5","shan","open","X","Y")])
-ggplot(dataS, aes(x=year,y=terriD))+ geom_point() + geom_smooth()
+pairs.panels(dataS[,c("terri","year","neo","agri5","shanG","open","X","Y")])
+ggplot(dataS, aes(x=year,y=terri))+ geom_point() + geom_smooth()
 ```
 
-Neo = lineaarinen, mitä enemmän neonikotinoideja sen vähemmän reviirejä
-shan = additiivinen, hyvin yksipuolisesta viljelystä edes muutamaan lajiin siirryttäessä suuri positiivinen vaikutus reviirien määrään, sen jälkeen tasaantuu ja jopa laskee
-agri5 = additiivinen, olisko pieni notkahdus reviireissä jos oikein paljon peltoa maisemassa?
-open = ei oikein mitään vaikutusta, korreloi neon kanssa
-Y = reviirejä enemmän etelässä
+
 
 ```{r}
 #neot tiheydellä, gamm
-
 
 #neot offsetilla, glmm
 #NO1=lme(terri ~ offset(area) + neo + year + X*Y + (1|fyear) + (1|id), family=nbinom2, data=data)
