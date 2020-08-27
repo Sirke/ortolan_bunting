@@ -56,7 +56,7 @@ dotchart(data$terri, main= "N territories")
 dotchart(data$prec, main= "precipitation")
 dotchart(data$temp, main= "temperature")
 dotchart(data$open, main= "open (spring sown)")
-dotchart(data$shan, main= "shannon")
+dotchart(data$shan, main= "shannon, species")
 dotchart(data$shanG, main= "shannon, crop types")
 ```
 
@@ -88,7 +88,7 @@ pairs.panels(data[,c(3:23)])
 
 Reviirien lukumäärällä (terri) ja Shannon-Wienerin indeksillä (shan ja shanG) sekä lajien lukumäärällä (snum) on suht vahva korrelaatio. Shan mittaa viljelykasvilajien (-koodien) monimuotoisuutta. ShanG puolestaan viljelykasviryhmien monimuotoisuutta. Snum mittaa vain viljelykasvilajien (-koodien) lukumäärää. Näistä fiksuin ShanG. Ottaahan offsettina käytetty pinta-ala huomioon sen, että isommalla osapopulaatiolla voi olla enemmän tilaa viljelyskasveille ja sitä kautta isompi monimuotoisuus?
 
-Maatalousmaiseman osuus (agri5) (ja jokien tiheys)  on positiivisesti korreloitunut reviirimäärän kanssa. Teiden ja rakennusten tiheys sen sijaan negatiivisesti. Eihän pinta-alan vaikutus tule kahteen kertaan huomioiduksi, jos tieden, jokien, rakennusten ja ojien tiheydessä jo huomioidaan pinta-ala?
+Maatalousmaiseman osuus (agri5) (ja jokien tiheys)  on positiivisesti korreloitunut reviirimäärän kanssa. Teiden ja rakennusten tiheys sen sijaan negatiivisesti. Eihän pinta-alan vaikutus tule kahteen kertaan huomioiduksi, jos tieden, jokien, rakennusten ja ojien **tiheydessä** jo huomioidaan pinta-ala?
 
 Vuosi on negatiivisesti korreloitunut reviirimäärien kanssa. 
 
@@ -339,7 +339,7 @@ Pinta-alan laittaminen kovariaatiksi ei näytä muuttuvan tuloksia pääpiirteis
 
 Päätettiin kokeilla mallinnusta niin, että selitettävänä muuttujana onkin reviirien tiheys. Näin osapopulaatioiden vaihteleva pinta-ala saadaan paremmin huomioitua. Osapopulaatiohan oli jo aikaisemminkin random-mmuuttujana, joten pinta-alan aiheuttama vaihtelu muuttujissa oli huomioitu jo jollain tasolla, mutta ei ehkä riittävästi.
 
-SSS eli pienten rakenteiden lukumäärä tai pituudet on suhteutettu osapopulaation pinta-alaan. Mietin, tuleeko pinta-ala tässä tapauksessa huomioitua kahteen kertaan?
+Edelleen pienten rakenteiden lukumäärä tai pituudet on suhteutettu osapopulaation pinta-alaan. Mietin, tuleeko pinta-ala tässä tapauksessa huomioitua kahteen kertaan?
 
 Tweedie-asiaa [täällä](https://stat.ethz.ch/R-manual/R-patched/library/mgcv/html/Tweedie.html) ja mgcv-paketista [täällä](https://people.maths.bris.ac.uk/~sw15190/mgcv/tampere/mgcv.pdf) ja [täällä](https://cran.r-project.org/web/packages/mgcv/mgcv.pdf). "Tweedie is an alternative to quasi when var(y) = φµp , 1 < p < 2, and a full distribution is required (for a non-negative real response)."
 
@@ -463,11 +463,11 @@ Lisäsin näihin malleihin myös agri5-muuttujalle interaktion vuoden kanssa.
 
 -Include area or etc as a predictor variable. Again this would usually be included as a log because you are modelling the log counts.  
 
-If you use the offset approach you are saying that if I double the area I would expect to get double the count. If you use the predictor approach you are sayinh that you know iif you multiply the area you multiply the counts but not necessarily by the same factor.
+If you use the offset approach you are saying that if I double the area I would expect to get double the count. If you use the predictor approach you are sayinh that you know if you multiply the area you multiply the counts but not necessarily by the same factor.
 
 **Pinta-ala offset argumenttina vai osana mallia?**
 "Argumenttina: Can be used to supply a model offset for use in fitting. Note that this offset
-will always be completely ignored when predicting, unlike an offset included in formula (this used to conform to the behaviour of lm and glm)." Eli jos argumenttina niin predicted arvot eivät huomioi offsettia. Kumpikohan olis fiksumpi?
+will always be completely ignored when predicting, unlike an offset included in formula (this used to conform to the behaviour of lm and glm)." Eli jos argumenttina niin predicted arvot eivät huomioi offsettia. Kumpikohan olis fiksumpi? Ennusteethan pitäisi siis tehdä jonkun kokoiselle osapopulaatiolle. 
 
 **Random intercept ja random slope malli**
 
@@ -684,8 +684,6 @@ abline(h = 0, lty = 2)
 Tää validointi on Zuurin GAMM NB esimerkistä. En vielä osaa sen kummemmin tulkita näitä. Enkä tiedä mitä kaikkea pitäisi plotata.
 
 
-Samat mallit voisi tehdä vielä niin, että SSS on eroteltu Abuild + Astream + Aroad + Ariver. Kokeilen tätä sitten myöhemmin kun päädyn johonkin ratkaisuun mallin rakenteesta ja funktiosta.
-
 
 ### 2.2.6 gamm-funktio
 
@@ -735,41 +733,16 @@ G7=gamm(terri ~ Abuild + Astream + Aroad + Ariver + agri5*year + s(Y,bs="cr") + 
 summary(G7$gam)
 ```
 
-Tällä tyylillä offset aiheuttaa hieman muutoksia tuloksiin. Esimerkiksi SSS nousee merkitseväksi. Tämä on kumma juttu koska oletin, että eroa ei pitäisi olla. Vasta predicted arvojen laskemisessa offsetin asettelulla piti olla väliä. Hmm...
+Tällä tyylillä offset aiheuttaa hieman muutoksia tuloksiin. 
 
 
-## 2.3 Neo-mallit erikseen
+Tähän olen jumahtanut. Pitäisikö tehdä mallin valintaa, vai tarkastelemmeko vain mallia, jossa on kaikki muuttujat? (full modelhan ei saanut alhaisinta AIC arvoa). 
 
-X ja Y ei ehkä tarpeellisia jos tulee alueen identifioiva muuttuja. 
+Miten malli validoidaan? Tarkistellaanko sen residuaaleja, käytetäänkö sitä ennusteiden tekemiseen ja verrataan ennusteita todellisiin havaintoihin?
 
-Heikin graduun:
-Lag-malli. Viime vuoden viljely osapopulaation alueella vaikuttaa seuraavan vuoden reviirimääriin.
-Aineisto jaetaan kolmeen maantieteelliseen alueeseen. Alueiden vertailu.
-
-```{r, fig.width=14, fig.height=12}
-
-pairs.panels(dataS[,c("terri","year","NeoPrior","agri5","shanG","open","X","Y")])
-ggplot(dataS, aes(x=year,y=terri))+ geom_point() + geom_smooth()
-```
+Tehtävä listalla oli visualisoida smoothereita. Se on vielä tekemättä.
 
 
-
-```{r}
-#neot tiheydellä, gamm
-
-#neot offsetilla, glmm
-#NO1=lme(terri ~ offset(area) + neo + year + X*Y + (1|fyear) + (1|id), family=nbinom2, data=data)
-
-#lag-malli
-#NL1=   (terri ~ neo + year + X + Y + (1|fyear) + (1|id), correlation=corAR1(form=~year) family=nbinom2, data=data)
-
-#neot erikseen
-N1=glmmTMB(terri ~ NeoPrior * year + X * Y + (1|fyear) + (1|id), family=nbinom2, data=dataS)
-
-
-summary(N1)
-
-```
 
 
 
