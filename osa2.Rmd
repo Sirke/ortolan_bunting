@@ -578,7 +578,7 @@ M7 <- gamm4(terri ~ Abuild + Astream + Aroad + Ariver + agri5*year + s(Y) + s(X)
             family = negbin(theta = Theta),  
             data = dataS)
 
-# M6 and M4 should now give similar results.
+# M6 and M7 should now give similar results.
 summary(M6)
 summary(M7$gam)
 summary(M7$mer)
