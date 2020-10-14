@@ -177,8 +177,7 @@ Yleisimmät viljelykasvit:
 
 ```{r}
 #yleisimmät viljelykasvit
-sp %>%
-  top_n(10, osuudet)
+sp[order(-osuudet),]
 ```
 
 Yleisimmät lajit ovat kevätvehnä (1120), kaura (1400), rehuohra (1310), monivuotiset kuivaheinä-, säilörehu- ja tuorerehunurmet (6121), mallasohra (1320), kevätrypsi (4110) ja syysvehnä (1110).

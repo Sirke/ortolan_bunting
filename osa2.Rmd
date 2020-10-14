@@ -201,7 +201,7 @@ dataS=data %>%mutate_at(c(2:3,5:7,9:21), funs(c(scale(.))))
 
 Sovitetaan viisi hypoteesiemme mukaista glmm-mallia ja tulostetaan niiden AICc-taulukko: 
 
-```{r}
+```{r, cache=T}
 M1=glmmTMB(terri ~ year + (1|fyear)+ (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
 M2=glmmTMB(terri ~ Abuild + Astream + Aroad + Ariver + agri5 + X*Y + year + (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
@@ -238,7 +238,7 @@ Taulukon tulkinta on hieman epäselvää mulle. Taulukkohan vihjaa etteivät int
 
 Edellisissä malleissa ei huomioitu sitä, että osapopulaatiot ovat eri kokoisia. Toki isommilla alueilla on enemmän reviirejä, joten pinta-alan vaikutus huomioitava kaikessa. Toivottavasti se ei kuitenkaan tule huomioitua jo kahdesti pienipiirteisten rakennelmien kohdalla?
 
-```{r}
+```{r, cache=T}
 M1=glmmTMB(terri ~ year + offset(log(area)) + (1|fyear)+ (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
 M2=glmmTMB(terri ~ Abuild + Astream + Aroad + Ariver + agri5 + X*Y + year + offset(log(area))+ (1|fyear) + (1|id), family=nbinom2, data=dataS,REML=FALSE)
@@ -290,7 +290,7 @@ Huom! Offset voisi kai olla myös argumentti funktiolle, eikä muuttuja niinkuin
 
 Samat mallit mutta niin, että pinta-ala onkin oma kovariaattinsa.
 
-```{r}
+```{r, cache=T}
 M1=glmmTMB(terri ~ year + log(area) + (1|fyear)+ (1|id), family=nbinom2, data=dataS, REML=FALSE)
 
 M2=glmmTMB(terri ~ Abuild + Astream + Aroad + Ariver + agri5 + X*Y + year + log(area)+ (1|fyear) + (1|id), family=nbinom2, data=dataS, REML=FALSE)
@@ -375,7 +375,7 @@ Muuttujan voi laittaa random-tekijäksi myös määrittämällä se smootherissa
 Näin aluksi vain koordinaatit X ja Y saavat smootherin. 
 
 
-```{r}
+```{r, cache=T}
 G1=gam(terriD ~  year + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
 
 G2=gam(terriD ~  year + agri5 + Abuild + Astream + Aroad + Ariver + s(Y) + s(X) + s(fyear,bs="re") + s(id,bs="re"), data=dataS, family=tw, REML=FALSE)
@@ -418,7 +418,7 @@ mixed-effects regression, at least when linear random slopes are used.
 
 Eli alla käyttämäni random-rakenne ei ole oikein, tai ainakaan just se mitä haetaan. Random slopen ja random interceptin välille ei saa korrelaatiota. Pitäisi kai käyttää GAMM-funktiota sit kuitenkin. 
 
-```{r}
+```{r, cache=T}
 M1 <- gam(terri ~ year + s(id, bs="re") + s(year,id, bs ="re"), offset=log(area), family = nb(), data= dataS, method = "ML")
 
 M2 <- gam(terri ~ Abuild + Astream + Aroad + Ariver + agri5*year + s(Y, bs ="cs") + s(X, bs ="cs") + s(id, bs="re") + s(year,id, bs="re"), offset=log(area), family = nb(),data= dataS, method = "ML")
@@ -538,7 +538,7 @@ Zuurin kaksi tapaa arvioida theta:
 
 1) Käytetään gamm4-funktiota ja kokeillaan erilaisia thetoja, katsotaan kuvaajasta, mikä antaa parhaimman AIC arvon
 
-```{r}
+```{r, cache=T}
 AllThetas <- c(0.1, 0.5, 1, 5, 10,20)
 AICs <- vector(length = 6)
 i <- 1
@@ -564,7 +564,7 @@ Tästä ei tule tulokseksi mitään järkeävää. Tai AIC:t vaan laskee mitä i
 
 2) Käytetään gam-funktiota, jolloin family=nb() arvioi itse sopivan thetan. Tässä tulee taas ongelmaksi gam-funktion random-rakenne. Miten siihen ohjelmoidaan oikeanlainen random intercept ja slope rakenne? Koodissa on nyt toistaiseksi rakenne, joka ymmärtääkseni ei salli korrelaatiota slopen ja interceptin välillä (eli (0 + year|id)). Voiko thetan arvioida näin?
 
-```{r}
+```{r, cache=T}
 #thetan voisi arvioida sovittamalla mallin GAM:lla eli random tekijä smootheriksi. Mutta mikä malli tässä pitäisi olla? Monimutkaisin?
 
 M6 <- gam(terri ~ Abuild + Astream + Aroad + Ariver + agri5*year + s(Y) + s(X) + year*temp + year*prec + year*shanG + year*open + offset(log(area)) + s(id, bs="re") + s(year,id, bs="re"), family = nb(),data = dataS)
@@ -595,7 +595,7 @@ Theta
 
 Jos tässä kokeilussa oli väärin käyttää tuota monimutkaisinta mallia niin kokeillaan sitten myös yksinkertaisemmalla mallilla. Saanko saman thetan?
 
-```{r}
+```{r, cache=T}
 M8 <- gam(terri ~ year + offset(log(area)) + s(id, bs="re") + s(year,id, bs="re"), family = nb(), data = dataS)
 summary(M8)
 Theta2 <- M8$family$getTheta(TRUE)
@@ -616,7 +616,7 @@ Nyt en oikein tiedä minkä thetan valitsisin. Toistaiseksi valitsen tuon ekan v
 
 Nyt takaisin varsinaisten mallien pariin kun theta on arvioitu:
 
-```{r}
+```{r, cache=T}
 #varsinaiset mallit, joissa theta arvioitu gam-mallin avulla
 
 G1=gamm4(terri ~ year + offset(log(area)), random= ~(1 + year|id), family=negbin(theta=Theta), data=dataS) 
@@ -691,7 +691,7 @@ Samat mallit voisi ajaa myös gamm-funktiolla. gamm-funktion etu olisi se, että
 
 Näissä malleissa pinta-alan logaritmi on argumentti-offsettina. 
 
-```{r}
+```{r, cache=T}
 G1=gamm(terri ~ year, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS) 
 
 G2=gamm(terri ~ Abuild + Astream + Aroad + Ariver + agri5*year + s(Y,bs="cr") + s(X,bs="cr") + year, offset=log(area), random= list(id=~1+year), family=nbinom2, data=dataS)
